@@ -61,7 +61,7 @@ test('store flow with mock gateway', async (t) => {
     const d = await req('GET', o.json.downloads[0].url);
     assert.equal(d.status, 200);
     assert.ok(d.text.startsWith('%PDF'));
-    assert.match(d.headers.get('content-disposition'), /attachment/);
+    assert.match(d.headers.get('content-disposition'), /attachment; filename="Israeel-Part-2\.pdf"/);
     // The copy is personalized with the buyer's email and order number.
     const pdf = await PDFDocument.load(d.buf);
     assert.match(pdf.getSubject(), new RegExp(`${customer.email}.*${id}`));

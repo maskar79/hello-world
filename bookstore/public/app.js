@@ -1,7 +1,6 @@
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
   const egp = (n) => `${n.toLocaleString('ar-EG')} ج.م`;
-  const ARABIC_NUMS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
   const store = {
@@ -15,37 +14,44 @@
   let quote = null;
 
   // ---------- rendering helpers ----------
+  const PARTS = ['الجزء الأول', 'الجزء الثاني', 'الجزء الثالث', 'الجزء الرابع', 'الجزء الخامس', 'الجزء السادس'];
+  const AVAILABLE = { 1: 'جزء واحد متاح الآن', 2: 'جزءان متاحان الآن', 3: 'ثلاثة أجزاء متاحة الآن', 4: 'أربعة أجزاء متاحة الآن', 5: 'خمسة أجزاء متاحة الآن' };
+  const TOGETHER = { 2: 'الجزءان معًا', 3: 'الأجزاء الثلاثة معًا', 4: 'الأجزاء الأربعة معًا', 5: 'الأجزاء الخمسة معًا', 6: 'الأجزاء الستة معًا' };
   const isSoon = (b) => b && b.status === 'soon';
-  function coverHtml(book, index) {
-    // Real cover image when the catalog has one; a simple placeholder otherwise.
-    if (book.cover) return `<div class="cover has-img"><img src="${esc(book.cover)}" alt="غلاف ${esc(book.title)}" loading="lazy"></div>`;
-    return `<div class="cover" data-color="${esc(book.color || '#333')}">
-      <span class="cover-num">${ARABIC_NUMS[index] || ''}</span>
-      <div><div class="cover-line"></div><div class="cover-title">${esc(book.title)}</div></div>
-    </div>`;
-  }
-  // CSP blocks inline style attributes, so apply colors through the CSSOM.
-  function paintCovers(root = document) {
-    root.querySelectorAll('.cover[data-color]').forEach((el) => el.style.setProperty('--c', el.dataset.color));
-  }
+  const partLabel = (b) => PARTS[catalog.books.indexOf(b)] || '';
+  const coverHtml = (b, lazy = true) =>
+    `<div class="cover"><img src="${esc(b.cover || '')}" alt="غلاف ${esc(b.title)}"${lazy ? ' loading="lazy"' : ''}></div>`;
+  // Quranic text between ﴿ ﴾ is set in the Quran typeface.
+  const rich = (t) => esc(t).replace(/﴿[^﴾]*﴾/g, (m) => `<span class="q">${m}</span>`);
+  const bundleName = (bundle) => TOGETHER[bundle.bookIds.length] || bundle.title;
 
   const product = (id) =>
     catalog.books.find((b) => b.id === id) || catalog.bundles.find((b) => b.id === id);
 
   // ---------- page ----------
+  function renderHero() {
+    const available = catalog.books.filter((b) => !isSoon(b));
+    $('#availableChip').textContent = AVAILABLE[available.length] || 'نسخ PDF';
+    $('#fan').innerHTML = available.slice(0, 3).map((b) => coverHtml(b, false)).join('');
+    const bundle = catalog.bundles[0];
+    if (bundle) {
+      $('#heroBundle').textContent = bundleName(bundle);
+      $('#heroBundle').dataset.add = bundle.id;
+      $('#heroLead').textContent = `رحلةٌ بين القرآن والعقل والتاريخ. اختر جزءًا لتقرأ نبذة عنه، أو احصل على ${bundleName(bundle)} بسعر خاص.`;
+    } else {
+      $('#heroBundle').hidden = true;
+    }
+  }
+
   function renderBooks() {
-    $('#booksGrid').innerHTML = catalog.books
-      .map((b, i) => `
-        <button class="card${isSoon(b) ? ' soon' : ''}" data-book="${esc(b.id)}" type="button"${isSoon(b) ? ' aria-disabled="true"' : ''}>
-          ${coverHtml(b, i)}
-          <h3>${esc(b.title)}</h3>
-          <p class="sub">${esc(b.subtitle)}</p>
-          <div class="row">${isSoon(b)
-            ? '<span class="soon-tag">قريبًا</span>'
-            : `<span class="price">${egp(b.price)}</span><span class="hint">اقرأ النبذة ←</span>`}</div>
-        </button>`)
-      .join('');
-    paintCovers($('#booksGrid'));
+    $('#booksGrid').innerHTML = catalog.books.map((b) => isSoon(b)
+      ? `<div class="card soon">${coverHtml(b)}<span><span class="chip">${partLabel(b)}</span></span>
+          <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
+          <div class="row"><span class="soon-tag">قريبًا</span></div></div>`
+      : `<button class="card" data-book="${esc(b.id)}" type="button">${coverHtml(b)}
+          <span><span class="chip">${partLabel(b)}</span></span>
+          <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
+          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">اقرأ النبذة ←</span></div></button>`).join('');
   }
 
   function renderBundle() {
@@ -53,40 +59,40 @@
     if (!bundle) { $('#bundle').hidden = true; return; }
     const full = bundle.bookIds.reduce((s, id) => s + (product(id)?.price || 0), 0);
     const save = full - bundle.price;
+    const soon = catalog.books.filter(isSoon).map((b) => `${partLabel(b)} قريبًا.`).join(' ');
     $('#bundleCard').innerHTML = `
       <div>
         ${save > 0 ? `<span class="save">وفّر ${egp(save)}</span>` : ''}
-        <h2>${esc(bundle.title)}</h2>
-        <p>${esc(bundle.subtitle)}</p>
-        <div class="big-price">${egp(bundle.price)} ${save > 0 ? `<span class="strike">${egp(full)}</span>` : ''}</div>
-        <button class="btn primary" data-add="${esc(bundle.id)}">أضف المجموعة للسلة</button>
+        <h2>${esc(bundleName(bundle))}</h2>
+        <p>${esc(bundle.subtitle)}، ملفات PDF تُحمَّل فور الدفع. ${esc(soon)}</p>
       </div>
-      <div class="stack">${bundle.bookIds.map((id) => coverHtml(product(id), catalog.books.findIndex((b) => b.id === id))).join('')}</div>`;
-    paintCovers($('#bundleCard'));
+      <div>
+        <div class="big">${egp(bundle.price)} ${save > 0 ? `<span class="strike">${egp(full)}</span>` : ''}</div>
+        <button class="btn dark" type="button" data-add="${esc(bundle.id)}">أضف المجموعة للسلة</button>
+      </div>`;
   }
 
   function openBook(id) {
-    const i = catalog.books.findIndex((b) => b.id === id);
-    const b = catalog.books[i];
-    if (isSoon(b)) return; // nothing to show or buy yet
+    const b = catalog.books.find((x) => x.id === id);
+    if (!b || isSoon(b)) return; // nothing to show or buy yet
     const bundle = catalog.bundles.find((x) => x.bookIds.includes(id));
     $('#bookDetail').innerHTML = `
-      ${coverHtml(b, i)}
+      ${coverHtml(b, false)}
       <div>
+        <span class="chip">${partLabel(b)}</span>
         <h2>${esc(b.title)}</h2>
-        <p class="sub">${esc(b.subtitle)}</p>
+        <p class="subtitle">${esc(b.subtitle)}</p>
         <p class="meta">${b.pages ? `${b.pagesApprox ? 'نحو ' : ''}${b.pages.toLocaleString('ar-EG')} صفحة · ` : ''}نسخة PDF</p>
-        <p>${esc(b.teaser)}</p>
-        ${b.quote ? `<blockquote>«${esc(b.quote)}»</blockquote>` : ''}
-        ${b.highlights?.length ? `<strong>ماذا ستجد في الكتاب؟</strong><ul>${b.highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
+        <p>${rich(b.teaser)}</p>
+        ${b.quote ? `<div class="callout">«${esc(b.quote)}»</div>` : ''}
+        ${b.highlights?.length ? `<strong class="h">ماذا ستجد في الكتاب؟</strong><ul>${b.highlights.map((h) => `<li>${rich(h)}</li>`).join('')}</ul>` : ''}
         <div class="buy">
           <span class="price">${egp(b.price)}</span>
-          <button class="btn primary" data-add="${esc(b.id)}">${cart.includes(b.id) ? 'في السلة ✓' : 'أضف للسلة'}</button>
-          ${bundle ? `<button class="btn ghost" data-add="${esc(bundle.id)}">أو المجموعة كاملة بـ ${egp(bundle.price)}</button>` : ''}
+          <button class="btn primary" type="button" data-add="${esc(b.id)}">${cart.includes(b.id) ? 'في السلة ✓' : 'أضف للسلة'}</button>
+          ${bundle ? `<button class="btn" type="button" data-add="${esc(bundle.id)}">أو ${esc(bundleName(bundle))} بـ ${egp(bundle.price)}</button>` : ''}
         </div>
         <p class="hint">زر التحميل يتفعّل مباشرةً بعد تأكيد الدفع.</p>
       </div>`;
-    paintCovers($('#bookDetail'));
     $('#bookDialog').showModal();
   }
 
@@ -95,7 +101,7 @@
     if (!orders.length) return;
     const el = $('#myLibrary');
     el.hidden = false;
-    el.innerHTML = `📚 لديك ${orders.length === 1 ? 'طلب سابق' : `${orders.length.toLocaleString('ar-EG')} طلبات سابقة`} على هذا الجهاز: ` +
+    el.innerHTML = `لديك ${orders.length === 1 ? 'طلب سابق' : `${orders.length.toLocaleString('ar-EG')} طلبات سابقة`} على هذا الجهاز: ` +
       orders.map((o, i) => `<a href="${esc(o.link)}">الطلب ${(i + 1).toLocaleString('ar-EG')}</a>`).join(' · ');
   }
 
@@ -139,7 +145,7 @@
     lines.innerHTML = cart.map((id) => {
       const p = product(id);
       return `<div class="cart-line"><div><strong>${esc(p.title)}</strong><br><span class="hint">${egp(p.price)}</span></div>
-              <button data-remove="${esc(id)}">إزالة</button></div>`;
+              <button type="button" data-remove="${esc(id)}">إزالة</button></div>`;
     }).join('');
 
     const res = await fetch('/api/quote', {
@@ -159,7 +165,7 @@
     quote = data;
     $('#totals').innerHTML = `
       <dt>المجموع</dt><dd>${egp(data.subtotal)}</dd>
-      ${data.discount ? `<dt>خصم (${esc(data.promoCode)})</dt><dd>− ${egp(data.discount)}</dd>` : ''}
+      ${data.discount ? `<dt class="disc">خصم (${esc(data.promoCode)})</dt><dd class="disc">− ${egp(data.discount)}</dd>` : ''}
       <dt class="grand">الإجمالي</dt><dd class="grand">${data.total === 0 ? 'مجانًا' : egp(data.total)}</dd>`;
     $('#payBtn').disabled = false;
     $('#payBtn').textContent = data.total === 0 ? 'احصل على الكتب مجانًا' : `ادفع ${egp(data.total)}`;
@@ -256,12 +262,15 @@
   fetch('/api/catalog').then((r) => r.json()).then((c) => {
     catalog = c;
     cart = cart.filter((id) => product(id) && !isSoon(product(id)));
+    renderHero();
     renderBooks();
     renderBundle();
     renderLibrary();
     saveCart();
     if (new URLSearchParams(location.search).get('payment') === 'unknown') {
-      alert('لم نتمكن من العثور على الطلب. إذا تم خصم المبلغ تواصل معنا.');
+      const el = $('#myLibrary');
+      el.hidden = false;
+      el.textContent = 'لم نتمكن من العثور على الطلب. إذا تم خصم المبلغ تواصل معنا عبر واتساب أو البريد في أسفل الصفحة.';
     }
   });
 })();

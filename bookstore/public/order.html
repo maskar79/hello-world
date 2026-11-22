@@ -2,18 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <title>طلبك</title>
+  <meta name="theme-color" content="#000000">
+  <title>طلبك · إسراءيل</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="topbar"><a href="/" class="brand">مكتبة الكاتب</a></header>
-  <main class="order-wrap">
+  <header class="topbar slim"><div class="wrap"><a href="/" class="back">→ العودة للمتجر</a></div></header>
+  <main class="wrap"><div class="order">
     <h1>طلبك</h1>
     <div class="status pending" id="status"><span class="dot"></span><div id="statusText">جارٍ التحقق من حالة الدفع…</div></div>
 
@@ -23,18 +24,19 @@
     <dl class="totals" id="totals"></dl>
 
     <div id="keep" hidden>
-      <p class="hint"><strong>احتفظ بهذا الرابط</strong> — يمكنك العودة إليه لاحقًا لتحميل كتبك مرة أخرى:</p>
-      <div class="copy-row"><input id="linkInput" readonly><button class="btn small" id="copyBtn">نسخ</button></div>
+      <p class="hint"><strong>احتفظ بهذا الرابط</strong>، يمكنك العودة إليه لاحقًا لتحميل كتبك مرة أخرى:</p>
+      <div class="copy-row"><input id="linkInput" readonly aria-label="رابط الطلب"><button class="btn small" id="copyBtn" type="button">نسخ</button></div>
     </div>
-  </main>
-  <section class="contact" aria-labelledby="contactTitle">
-    <h2 id="contactTitle">للتواصل مع الكاتب</h2>
-    <p class="hint">للاستفسارات أو أي مشكلة في الدفع أو التحميل.</p>
+  </div></main>
+
+  <section class="contact" aria-labelledby="contactTitle"><div class="wrap">
+    <div><h2 id="contactTitle">للتواصل مع الكاتب</h2><p>للاستفسارات أو أي مشكلة في الدفع أو التحميل.</p></div>
     <div class="contact-links">
       <a class="btn primary" href="https://wa.me/971506178653" target="_blank" rel="noopener">واتساب <bdi dir="ltr">+971 50 617 8653</bdi></a>
-      <a class="btn ghost" href="mailto:Goyalla@gmail.com"><bdi dir="ltr">Goyalla@gmail.com</bdi></a>
+      <a class="btn on-dark" href="mailto:Goyalla@gmail.com"><bdi dir="ltr">Goyalla@gmail.com</bdi></a>
     </div>
-  </section>
+  </div></section>
+  <footer class="site-foot"><div class="wrap">م. محمد عسكر · جميع الحقوق محفوظة · يُمنع إعادة نشر الكتب أو توزيعها</div></footer>
 
   <script src="/order.js"></script>
 </body>

@@ -2,82 +2,73 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>مكتبة الكاتب</title>
-  <meta name="description" content="الكتب الإلكترونية الأصلية — تحميل فوري بعد الدفع">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>إسراءيل</title>
+  <meta name="description" content="سلسلة «إسراءيل»: رحلة بين القرآن والعقل والتاريخ. نسخ إلكترونية PDF تُحمَّل فور الدفع.">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="/covers/part1.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cairo:wght@400;600;700;900&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <a href="/" class="brand">مكتبة الكاتب</a>
-    <nav>
-      <a href="#books">الكتب</a>
-      <a href="#bundle">المجموعة الكاملة</a>
-      <button class="cart-btn" id="cartBtn" aria-label="السلة">
-        السلة <span class="badge" id="cartCount">0</span>
-      </button>
-    </nav>
-  </header>
+  <header class="topbar"><div class="wrap">
+    <button class="cart-btn" id="cartBtn" type="button" aria-label="سلة المشتريات">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2.2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.1"/><circle cx="9.5" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg>
+      السلة <span class="badge" id="cartCount">٠</span>
+    </button>
+  </div></header>
 
-  <section class="hero">
-    <p class="eyebrow">سلسلة «إسراءيل» · م. محمد عسكر · نسخ PDF أصلية</p>
-    <h1>قراءة مختلفة<br>لتاريخٍ وواقعٍ معقّد</h1>
-    <p class="lead">رحلة بحثية بين القرآن والسنة والتاريخ. اختر جزءًا لتقرأ نبذة عنه، أو احصل على المجموعة الكاملة بسعر خاص.</p>
-    <div class="hero-actions">
-      <a href="#books" class="btn primary">تصفّح الكتب</a>
-      <a href="#bundle" class="btn ghost">المجموعة الكاملة</a>
+  <section class="hero"><div class="wrap">
+    <div>
+      <span class="chip" id="availableChip">نسخ PDF</span>
+      <h1>إسراءيل</h1>
+      <p class="lead" id="heroLead">رحلةٌ بين القرآن والعقل والتاريخ. اختر جزءًا لتقرأ نبذة عنه، أو احصل على المجموعة بسعر خاص.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#parts">تصفّح الأجزاء</a>
+        <button class="btn on-dark" type="button" id="heroBundle">المجموعة الكاملة</button>
+      </div>
+      <div id="myLibrary" class="my-library" hidden></div>
     </div>
-    <div id="myLibrary" class="my-library" hidden></div>
-  </section>
+    <div class="fan-wrap">
+      <div class="fan" id="fan" aria-hidden="true"></div>
+      <p class="pdf-note">نسخة إلكترونية PDF، وليست نسخة ورقية مطبوعة</p>
+    </div>
+  </div></section>
 
-  <section id="books" class="section">
-    <h2 class="section-title">الكتب</h2>
+  <section class="section" id="parts"><div class="wrap">
+    <h2 class="section-title">الأجزاء</h2>
     <div class="grid" id="booksGrid"></div>
-  </section>
+  </div></section>
 
-  <section id="bundle" class="section">
-    <div class="bundle" id="bundleCard"></div>
-  </section>
+  <section class="bundle" id="bundle"><div class="wrap" id="bundleCard"></div></section>
 
-  <section class="section how">
-    <h2 class="section-title">كيف تحصل على كتابك؟</h2>
-    <ol class="steps">
-      <li><strong>اختر</strong><span>كتابًا أو المجموعة الكاملة وأضفها للسلة.</span></li>
-      <li><strong>ادفع</strong><span>بالكارت أو المحفظة الإلكترونية عبر بوابة دفع آمنة.</span></li>
-      <li><strong>حمّل</strong><span>يتفعّل زر التحميل فور تأكيد الدفع.</span></li>
-    </ol>
-  </section>
-
-  <section class="contact" aria-labelledby="contactTitle">
-    <h2 id="contactTitle">للتواصل مع الكاتب</h2>
-    <p class="hint">للاستفسارات أو أي مشكلة في الدفع أو التحميل.</p>
+  <section class="contact" aria-labelledby="contactTitle"><div class="wrap">
+    <div><h2 id="contactTitle">للتواصل مع الكاتب</h2><p>للاستفسارات أو أي مشكلة في الدفع أو التحميل.</p></div>
     <div class="contact-links">
       <a class="btn primary" href="https://wa.me/971506178653" target="_blank" rel="noopener">واتساب <bdi dir="ltr">+971 50 617 8653</bdi></a>
-      <a class="btn ghost" href="mailto:Goyalla@gmail.com"><bdi dir="ltr">Goyalla@gmail.com</bdi></a>
+      <a class="btn on-dark" href="mailto:Goyalla@gmail.com"><bdi dir="ltr">Goyalla@gmail.com</bdi></a>
     </div>
-  </section>
-
-  <footer class="footer">© <span id="year"></span> جميع الحقوق محفوظة للمؤلف. يُمنع إعادة نشر الكتب أو توزيعها.</footer>
+  </div></section>
+  <footer class="site-foot"><div class="wrap">© <span id="year"></span> م. محمد عسكر · جميع الحقوق محفوظة · يُمنع إعادة نشر الكتب أو توزيعها</div></footer>
 
   <!-- Book details -->
-  <dialog id="bookDialog" class="dialog">
-    <button class="close" data-close aria-label="إغلاق">×</button>
-    <div class="book-detail" id="bookDetail"></div>
+  <dialog id="bookDialog">
+    <button class="close" data-close type="button" aria-label="إغلاق">×</button>
+    <div class="detail" id="bookDetail"></div>
   </dialog>
 
   <!-- Cart drawer -->
-  <aside class="drawer" id="drawer" aria-hidden="true">
+  <aside class="drawer" id="drawer" aria-hidden="true" aria-label="سلة المشتريات">
     <div class="drawer-head">
       <h3>سلة المشتريات</h3>
-      <button class="close" id="drawerClose" aria-label="إغلاق">×</button>
+      <button class="close" id="drawerClose" type="button" aria-label="إغلاق">×</button>
     </div>
-    <div id="cartLines" class="cart-lines"></div>
+    <div id="cartLines"></div>
 
     <form id="promoForm" class="promo">
-      <input id="promoInput" placeholder="كود الخصم (اختياري)" autocomplete="off">
+      <input id="promoInput" placeholder="كود الخصم (اختياري)" autocomplete="off" aria-label="كود الخصم">
       <button type="submit" class="btn small">تطبيق</button>
     </form>
     <p id="promoMsg" class="msg"></p>
@@ -85,11 +76,11 @@
     <dl class="totals" id="totals"></dl>
 
     <form id="checkoutForm" class="checkout">
-      <label>الاسم<input name="name" required minlength="2" autocomplete="name"></label>
+      <label>الاسم<input name="name" id="name" required minlength="2" autocomplete="name"></label>
       <label>البريد الإلكتروني<input name="email" id="email" type="email" required autocomplete="email" dir="ltr"></label>
       <label>أعد كتابة البريد الإلكتروني<input name="emailConfirm" id="emailConfirm" type="email" required autocomplete="off" dir="ltr"></label>
       <p class="hint field-note">اكتب بريدك بدقة، فهو يُطبع على نسختك من الكتاب ونتواصل معك من خلاله.</p>
-      <label>رقم الموبايل<input name="phone" type="tel" required placeholder="01xxxxxxxxx" autocomplete="tel" dir="ltr"></label>
+      <label>رقم الموبايل<input name="phone" id="phone" type="tel" required placeholder="01xxxxxxxxx" autocomplete="tel" dir="ltr"></label>
       <button type="submit" class="btn primary block" id="payBtn">إتمام الشراء</button>
       <p id="checkoutMsg" class="msg"></p>
     </form>

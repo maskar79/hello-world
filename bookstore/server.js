@@ -315,7 +315,10 @@ app.get('/download/:orderId/:bookId', ah(async (req, res) => {
   if (!(await store.incrementDownload(order.id, bookId, MAX_DOWNLOADS)))
     return res.status(429).send('تم تجاوز الحد الأقصى لمرات التحميل، تواصل معنا');
   res.set('Cache-Control', 'private, no-store');
-  res.attachment(`${book.title}.pdf`);
+  // Plain-ASCII file name (e.g. Israeel-Part-1.pdf): some browsers drop non-Latin names and save the
+  // file as "download" with no extension, which won't open by double-click.
+  const partNo = catalog().books.findIndex((b) => b.id === book.id) + 1;
+  res.set('Content-Disposition', `attachment; filename="Israeel-Part-${partNo}.pdf"`);
   res.type('application/pdf');
   res.send(body);
 }));

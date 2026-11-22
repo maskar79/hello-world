@@ -17,22 +17,19 @@
     $('#status').className = `status ${o.status}`;
     $('#statusText').textContent = STATUS[o.status] || o.status;
 
-    $('#downloads').innerHTML = o.downloads.map((d, i) => `
+    $('#downloads').innerHTML = o.downloads.map((d) => `
       <div class="dl">
-        ${d.cover
-          ? `<div class="cover has-img"><img src="${esc(d.cover)}" alt=""></div>`
-          : `<div class="cover" data-color="${esc(d.color || '#333')}"><span class="cover-num">${'١٢٣٤٥٦٧٨٩'[i] || ''}</span></div>`}
+        <div class="cover"><img src="${esc(d.cover || '')}" alt=""></div>
         <div><h4>${esc(d.title)}</h4>
           <small>${o.status === 'paid' ? `متبقٍ ${d.remaining.toLocaleString('ar-EG')} مرات تحميل` : 'متاح بعد تأكيد الدفع'}</small></div>
         ${d.url
-          ? `<a class="btn primary small" href="${esc(d.url)}" download>تحميل PDF</a>`
+          ? `<a class="btn primary small" href="${esc(d.url)}">تحميل PDF</a>`
           : `<button class="btn primary small" disabled title="يتفعّل بعد الدفع">تحميل PDF</button>`}
       </div>`).join('');
-    document.querySelectorAll('.cover[data-color]').forEach((el) => el.style.setProperty('--c', el.dataset.color));
 
     $('#totals').innerHTML = `
       <dt>المجموع</dt><dd>${egp(o.subtotal)}</dd>
-      ${o.discount ? `<dt>خصم (${esc(o.promoCode)})</dt><dd>− ${egp(o.discount)}</dd>` : ''}
+      ${o.discount ? `<dt class="disc">خصم (${esc(o.promoCode)})</dt><dd class="disc">− ${egp(o.discount)}</dd>` : ''}
       <dt class="grand">المدفوع</dt><dd class="grand">${o.total === 0 ? 'مجانًا' : egp(o.total)}</dd>`;
 
     if (o.status === 'paid') {
