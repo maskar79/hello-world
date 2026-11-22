@@ -49,15 +49,16 @@
   const partUrl = (b) => `/part-${catalog.books.indexOf(b) + 1}`;
   const cardTop = (b) => `<div class="card-top"><span class="chip">${partLabel(b)}</span>${b.pages ? `<span class="pages">${b.pages.toLocaleString('ar-EG')} صفحة</span>` : ''}</div>`;
 
+  // Each card sits in a wrapper so the download count can go underneath, outside the card.
   function renderBooks() {
-    $('#booksGrid').innerHTML = catalog.books.map((b) => isSoon(b)
+    $('#booksGrid').innerHTML = catalog.books.map((b) => `<div class="card-wrap">${isSoon(b)
       ? `<div class="card soon">${coverHtml(b)}${cardTop(b)}
           <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
           <div class="row"><span class="soon-tag">قريبًا</span></div></div>`
       : `<button class="card" data-book="${esc(b.id)}" type="button">${coverHtml(b)}
           ${cardTop(b)}
-          <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>${dlCount(b)}
-          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">تفاصيل الكتاب ←</span></div></button>`).join('');
+          <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
+          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">تفاصيل الكتاب ←</span></div></button>`}${isSoon(b) ? '' : dlCount(b)}</div>`).join('');
   }
 
   function renderBundle() {

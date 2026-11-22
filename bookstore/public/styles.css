@@ -77,7 +77,8 @@ img { max-width: 100%; display: block; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
   cursor: pointer; text-align: start; color: inherit; font: inherit; transition: transform .2s, box-shadow .2s; min-width: 0; }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
-.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.card-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
+.card-top .chip, .card-top .pages { white-space: nowrap; }
 .card-top .pages { color: var(--muted); font: 400 .85rem/1.6 var(--heavy); }
 .card h3 { margin: 0; font: 700 1rem/1.5 var(--heavy); color: var(--ink); }
 .card .sub { margin: 0; font: 400 .92rem/1.6 var(--read); color: var(--muted); }
@@ -213,6 +214,9 @@ input { width: 100%; padding: 9px 12px; border-radius: 4px; border: 1px solid va
 /* ---------- download count (cards and part pages) ---------- */
 .dlc { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font: 400 .85rem/1.6 var(--heavy); margin: 0; }
 .dlc svg { width: 15px; height: 15px; flex: none; }
+.card-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card-wrap > .card { flex: 1; }
+.card-wrap > .dlc { align-self: center; }
 
 /* ---------- part page ---------- */
 .loading { padding-block: 60px; font-family: var(--heavy); color: var(--muted); }
