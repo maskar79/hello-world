@@ -71,7 +71,7 @@
       <div>
         <h2>${esc(b.title)}</h2>
         <p class="sub">${esc(b.subtitle)}</p>
-        <p class="meta">${b.pages ? `${b.pages.toLocaleString('ar-EG')} صفحة · ` : ''}نسخة PDF</p>
+        <p class="meta">${b.pages ? `${b.pagesApprox ? 'نحو ' : ''}${b.pages.toLocaleString('ar-EG')} صفحة · ` : ''}نسخة PDF</p>
         <p>${esc(b.teaser)}</p>
         ${b.quote ? `<blockquote>«${esc(b.quote)}»</blockquote>` : ''}
         ${b.highlights?.length ? `<strong>ماذا ستجد في الكتاب؟</strong><ul>${b.highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
