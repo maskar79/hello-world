@@ -126,7 +126,7 @@ function buildOrderEmail(order, { baseUrl, catalog }) {
         <tr><td style="background:#2E383A;border-top:4px solid #FFD200;padding:20px 28px;text-align:right;font-family:${FONT};color:#FFFFFF;">
           <div style="font-size:16px;font-weight:700;">للتواصل مع الكاتب</div>
           <div style="font-size:13px;color:#9FACB4;margin:2px 0 10px;">لأي استفسار أو مشكلة في التحميل، ردّ على هذه الرسالة${waDigits ? ' أو راسلنا على واتساب' : ''}.</div>
-          ${waDigits ? `<a href="https://wa.me/${waDigits}" style="display:inline-block;background:#FFD200;color:#000;font-weight:700;font-size:14px;padding:8px 16px;text-decoration:none;border:2px solid #000;">واتساب <span dir="ltr" style="font-family:Arial,sans-serif;unicode-bidi:isolate;">\u2066${esc(s.whatsapp)}\u2069</span></a>` : ''}
+          ${waDigits ? `<a href="https://wa.me/${waDigits}" style="display:inline-block;background:#FFD200;color:#000;font-weight:700;font-size:14px;padding:8px 16px;text-decoration:none;border:2px solid #000;">راسلنا على واتساب</a>` : ''}
         </td></tr>
         <tr><td style="background:#2E383A;border-top:1px solid #46525A;padding:14px 28px;text-align:center;font-family:${FONT};font-size:12px;color:#9FACB4;">
           م. محمد عسكر · جميع الحقوق محفوظة · يُمنع إعادة نشر الكتب أو توزيعها
@@ -152,7 +152,7 @@ function buildOrderEmail(order, { baseUrl, catalog }) {
     `رقم الطلب: ${order.id}`,
     `المدفوع: ${paid}`,
     '',
-    `للتواصل: ردّ على هذه الرسالة${s.whatsapp ? ` أو واتساب \u2066${s.whatsapp}\u2069` : ''}.`,
+    `للتواصل: ردّ على هذه الرسالة${waDigits ? ` أو راسلنا على واتساب: https://wa.me/${waDigits}` : ''}.`,
     'م. محمد عسكر',
   ].join('\n');
 

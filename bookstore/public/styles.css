@@ -176,7 +176,15 @@ input { width: 100%; padding: 9px 12px; border-radius: 4px; border: 1px solid va
 .contact h2 { font: 900 1.5rem var(--heavy); margin: 0; }
 .contact p { margin: 2px 0 0; font: 400 .95rem var(--heavy); color: var(--mist); }
 .contact-links { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.contact-links .btn.primary { box-shadow: 3px 3px 0 #FFFFFF; }
+.icon-group { display: flex; gap: 10px; }
+.icon-sep { width: 1px; height: 32px; background: rgba(255,255,255,.25); }
+.icon-btn { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 4px; border: 2px solid #FFFFFF; color: #FFFFFF;
+  text-decoration: none; transition: background .15s, color .15s, transform .15s; }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn.solid { background: var(--yellow); border-color: var(--ink); color: var(--ink); box-shadow: 3px 3px 0 #FFFFFF; }
+.icon-btn.solid:hover { transform: translate(-1px, -1px); }
+.icon-btn.line:hover { background: #FFFFFF; color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .icon-btn { transition: none; } }
 .contact-links .btn.on-dark:hover { background: #FFFFFF; color: var(--ink); }
 .contact-links bdi { font-family: var(--ui); font-weight: 600; }
 .site-foot { border-top: 3px solid var(--ink); background: var(--charcoal); color: var(--mist); font: .85rem var(--heavy); text-align: center; padding-block: 22px; }
