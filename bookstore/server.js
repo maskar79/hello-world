@@ -161,6 +161,9 @@ app.post('/api/checkout', rateLimit(10, 60_000), ah(async (req, res) => {
   const phone = String(customer.phone || '').replace(/[\s-]/g, '');
   if (name.length < 2) return res.status(400).json({ error: 'من فضلك اكتب الاسم' });
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'البريد الإلكتروني غير صحيح' });
+  // The shop form sends the email twice; refuse a mismatch so a typo can't slip through.
+  if (customer.emailConfirm !== undefined && String(customer.emailConfirm).trim().toLowerCase() !== email)
+    return res.status(400).json({ error: 'البريد الإلكتروني غير متطابق في الخانتين' });
   if (!PHONE_RE.test(phone)) return res.status(400).json({ error: 'رقم الموبايل غير صحيح' });
 
   let quote;

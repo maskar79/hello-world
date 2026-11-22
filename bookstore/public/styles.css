@@ -222,6 +222,7 @@ input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 .totals .grand { font-size: 1.25rem; color: var(--ink); font-weight: 700; padding-top: 6px; border-top: 1px solid var(--line); }
 .checkout label { display: block; font-size: .9rem; color: var(--muted); margin-bottom: 10px; }
 .checkout input { margin-top: 4px; }
+.checkout .field-note { margin: -4px 0 12px; }
 
 /* Order page */
 .order-wrap { max-width: 720px; margin: 0 auto; padding: 48px 16px; }

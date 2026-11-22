@@ -94,6 +94,11 @@ test('store flow with mock gateway', async (t) => {
   await t.test('checkout validates customer', async () => {
     const r = await req('POST', '/api/checkout', { items: ['book1'], customer: { ...customer, email: 'bad' } });
     assert.equal(r.status, 400);
+    const typo = await req('POST', '/api/checkout', { items: ['book1'], customer: { ...customer, emailConfirm: 'buyer@exmaple.com' } });
+    assert.equal(typo.status, 400);
+    assert.match(typo.json.error, /غير متطابق/);
+    const ok = await req('POST', '/api/checkout', { items: ['book1'], customer: { ...customer, emailConfirm: ' Buyer@Example.com ' } });
+    assert.equal(ok.status, 200);
   });
 
   await t.test('admin requires password', async () => {

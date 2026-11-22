@@ -167,6 +167,7 @@
 
   function setMsg(sel, text, kind) {
     const el = $(sel);
+    delete el.dataset.kind;
     el.textContent = text || '';
     el.className = `msg ${kind || ''}`;
   }
@@ -206,8 +207,25 @@
     if (promoCode && quote?.discount) setMsg('#promoMsg', `تم تطبيق الكود — وفّرت ${egp(quote.discount)}`, 'ok');
   });
 
+  // Typing the email twice catches typos before payment.
+  const sameEmail = () => {
+    const a = $('#email').value.trim().toLowerCase();
+    const b = $('#emailConfirm').value.trim().toLowerCase();
+    return !b || a === b;
+  };
+  ['#email', '#emailConfirm'].forEach((sel) => $(sel).addEventListener('input', () => {
+    $('#emailConfirm').setCustomValidity(sameEmail() ? '' : 'البريد الإلكتروني غير متطابق');
+    if (sameEmail() && $('#checkoutMsg').dataset.kind === 'email') setMsg('#checkoutMsg', '');
+  }));
+
   $('#checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!sameEmail() || !$('#emailConfirm').value.trim()) {
+      setMsg('#checkoutMsg', 'البريد الإلكتروني غير متطابق في الخانتين، راجعه من فضلك', 'err');
+      $('#checkoutMsg').dataset.kind = 'email';
+      $('#emailConfirm').focus();
+      return;
+    }
     const btn = $('#payBtn');
     btn.disabled = true;
     setMsg('#checkoutMsg', 'جارٍ تحويلك لبوابة الدفع…');
@@ -217,7 +235,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cart, promoCode,
-          customer: { name: f.get('name'), email: f.get('email'), phone: f.get('phone') },
+          customer: { name: f.get('name'), email: f.get('email'), emailConfirm: f.get('emailConfirm'), phone: f.get('phone') },
         }),
       });
       const data = await res.json();
