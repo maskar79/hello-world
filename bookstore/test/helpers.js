@@ -4,7 +4,7 @@ const path = require('path');
 
 function setupEnv(extra) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bookstore-'));
-  Object.assign(process.env, { DB_PATH: path.join(tmp, 'db.json'), BOOKS_DIR: path.join(tmp, 'books'), NODE_ENV: 'test', ADMIN_PASSWORD: 'secret-admin' }, extra);
+  Object.assign(process.env, { DB_PATH: path.join(tmp, 'db.json'), BOOKS_DIR: path.join(tmp, 'books'), NODE_ENV: 'test', ADMIN_PASSWORD: 'secret-admin', PROMOS_FILE: path.join(__dirname, 'fixtures', 'promos.json') }, extra);
   // Run the whole suite against PostgreSQL with: TEST_DATABASE_URL=postgres://... npm test
   if (process.env.TEST_DATABASE_URL) process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
   require('../scripts/make-sample-pdfs.js');

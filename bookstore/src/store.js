@@ -32,13 +32,16 @@ function jsonStore() {
       save();
       return true;
     },
-    async markPaid(order) {
+    async markPaid(order, { enforcePromoLimit = false } = {}) {
       const cur = db.orders[order.id];
-      if (!cur || cur.status === 'paid') return false;
+      if (!cur || cur.status === 'paid') return 'already';
+      const code = order.promoCode;
+      if (code && enforcePromoLimit && order.promoMaxUses != null && (db.promoUses[code] || 0) >= order.promoMaxUses)
+        return 'exhausted';
       db.orders[order.id] = clone(order);
-      if (order.promoCode) db.promoUses[order.promoCode] = (db.promoUses[order.promoCode] || 0) + 1;
+      if (code) db.promoUses[code] = (db.promoUses[code] || 0) + 1;
       save();
-      return true;
+      return 'paid';
     },
     async incrementDownload(orderId, bookId, max) {
       const o = db.orders[orderId];
@@ -102,21 +105,35 @@ function pgStore() {
       );
       return r.rowCount > 0;
     },
-    async markPaid(o) {
+    // enforcePromoLimit: claim a use of the code only if one is left (row-locked, so two people
+    // racing for a single-use code can't both get it). Used for free orders; a customer who has
+    // already paid money is never refused.
+    async markPaid(o, { enforcePromoLimit = false } = {}) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         const r = await client.query(
           `UPDATE orders SET status = 'paid', data = $2 WHERE id = $1 AND status <> 'paid'`, [o.id, o]
         );
-        if (r.rowCount && o.promoCode) {
-          await client.query(
+        if (!r.rowCount) {
+          await client.query('ROLLBACK');
+          return 'already';
+        }
+        if (o.promoCode) {
+          const limited = enforcePromoLimit && o.promoMaxUses != null;
+          const u = await client.query(
             `INSERT INTO promo_uses (code, uses) VALUES ($1, 1)
-             ON CONFLICT (code) DO UPDATE SET uses = promo_uses.uses + 1`, [o.promoCode]
+             ON CONFLICT (code) DO UPDATE SET uses = promo_uses.uses + 1
+             WHERE NOT $2::boolean OR promo_uses.uses < $3::int`,
+            [o.promoCode, limited, limited ? o.promoMaxUses : 0]
           );
+          if (!u.rowCount || (limited && o.promoMaxUses < 1)) {
+            await client.query('ROLLBACK');
+            return 'exhausted';
+          }
         }
         await client.query('COMMIT');
-        return r.rowCount > 0;
+        return 'paid';
       } catch (e) {
         await client.query('ROLLBACK');
         throw e;

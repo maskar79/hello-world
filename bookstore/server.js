@@ -111,13 +111,15 @@ function publicOrder(o) {
 
 // Idempotent and atomic: Paymob's callback and the browser redirect can both arrive,
 // even at the same moment; only the first one flips the order (and counts the promo use).
-async function markPaid(order, info = {}) {
-  if (order.status === 'paid') return;
+async function markPaid(order, info = {}, opts = {}) {
+  if (order.status === 'paid') return 'already';
   const paid = { ...order, status: 'paid', paidAt: new Date().toISOString(), payment: { ...order.payment, ...info } };
-  if (await store.markPaid(paid)) {
+  const result = await store.markPaid(paid, opts);
+  if (result === 'paid') {
     Object.assign(order, paid);
-    console.log(`[paid] ${order.id} ${order.total} EGP`);
+    console.log(`[paid] ${order.id} ${order.total} EGP${order.promoCode ? ` (code ${order.promoCode})` : ''}`);
   }
+  return result;
 }
 
 async function markFailed(order, info = {}) {
@@ -182,7 +184,11 @@ app.post('/api/checkout', rateLimit(10, 60_000), ah(async (req, res) => {
 
   // 100% discount → no payment needed.
   if (order.total === 0) {
-    await markPaid(order, { provider: 'free-promo' });
+    // Claims the code atomically: a single-use code works for exactly one person.
+    if ((await markPaid(order, { provider: 'free-promo' }, { enforcePromoLimit: true })) === 'exhausted') {
+      await markFailed(order, { error: 'promo-exhausted' });
+      return res.status(400).json({ error: 'تم استنفاد عدد مرات استخدام هذا الكود' });
+    }
     return res.json({ orderId: order.id, redirect: orderLink(order), orderLink: orderLink(order) });
   }
 

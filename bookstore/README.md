@@ -35,14 +35,24 @@ npm test                    # الاختبارات
 
 ### أكواد الخصم (`data/promos.json`)
 
+كل كود عبارة عن سطر واحد. الشرح الكامل لكل حقل مكتوب في أول الملف نفسه (`_help`).
+
+**حملة** (عدد لا نهائي من الناس، لفترة محددة):
 ```json
-{ "code": "HALF50",  "type": "percent", "value": 50,  "appliesTo": "all", "maxUses": null, "expiresAt": null, "active": true }
-{ "code": "GIFT100", "type": "percent", "value": 100, "appliesTo": "all", "maxUses": 10,   "expiresAt": null, "active": true }
-{ "code": "SAVE100", "type": "fixed",   "value": 100, "appliesTo": ["bundle-all"], "maxUses": null, "expiresAt": "2027-12-31T23:59:59Z", "active": true }
+{ "code": "RAMADAN10", "type": "percent", "value": 10, "appliesTo": "all", "maxUses": null, "startsAt": "2027-02-18", "expiresAt": "2027-03-19", "active": true, "note": "حملة رمضان" }
 ```
 
-- `appliesTo`: إما `"all"` أو قائمة بمنتجات معينة (مثلًا `["book1", "bundle-all"]`).
-- `maxUses`: عدد مرات الاستخدام، وبيتحسب بس على الطلبات اللي اتدفعت فعلًا.
+**هدية لصديق** (مجانًا، ومرة واحدة بس):
+```json
+{ "code": "FRIEND-M4RW9", "type": "percent", "value": 100, "appliesTo": "all", "maxUses": 1, "startsAt": null, "expiresAt": null, "active": true, "note": "لأحمد" }
+```
+
+- **`maxUses: 1`**: الكود بيشتغل لشخص واحد بس، حتى لو اتنين كتبوه في نفس اللحظة. بعدها أي حد يكتبه هتظهر له رسالة "تم استنفاد عدد مرات استخدام هذا الكود".
+- **التواريخ** بتتكتب بالشكل `2027-03-19`، وبتتحسب بتوقيت القاهرة: البداية من أول اليوم، والنهاية لآخر اليوم.
+- **أكواد الهدايا**: اعمل كود مختلف لكل صديق، وخليه صعب التخمين (حروف وأرقام عشوائية).
+- **أكواد الحملات**: ممكن تكون سهلة، لأنك أصلًا بتنشرها للناس.
+- **إيقاف كود فورًا**: خلي `"active": false`.
+- **بعد أي تعديل** اعمل Commit على GitHub، وRender هيحدّث الموقع لوحده.
 
 ## ربط Paymob (للتشغيل الحقيقي)
 
