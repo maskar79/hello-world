@@ -73,6 +73,10 @@ async function priceCart(itemIds, promoCode) {
   let products = [...new Set(itemIds.map(String))].map((id) => {
     const p = findProduct(id);
     if (!p) throw new PricingError('منتج غير معروف');
+    // A part marked "soon" can't be bought, alone or through a bundle that still lists it.
+    const books = catalog().books;
+    if (p.bookIds.some((bid) => (books.find((b) => b.id === bid) || {}).status === 'soon'))
+      throw new PricingError('هذا الجزء لم يصدر بعد');
     return p;
   });
 

@@ -15,10 +15,11 @@
   let quote = null;
 
   // ---------- rendering helpers ----------
+  const isSoon = (b) => b && b.status === 'soon';
   function coverHtml(book, index) {
-    const img = book.cover ? `<img src="${esc(book.cover)}" alt="">` : '';
+    // Real cover image when the catalog has one; a simple placeholder otherwise.
+    if (book.cover) return `<div class="cover has-img"><img src="${esc(book.cover)}" alt="غلاف ${esc(book.title)}" loading="lazy"></div>`;
     return `<div class="cover" data-color="${esc(book.color || '#333')}">
-      ${img}
       <span class="cover-num">${ARABIC_NUMS[index] || ''}</span>
       <div><div class="cover-line"></div><div class="cover-title">${esc(book.title)}</div></div>
     </div>`;
@@ -35,11 +36,13 @@
   function renderBooks() {
     $('#booksGrid').innerHTML = catalog.books
       .map((b, i) => `
-        <button class="card" data-book="${esc(b.id)}" type="button">
+        <button class="card${isSoon(b) ? ' soon' : ''}" data-book="${esc(b.id)}" type="button"${isSoon(b) ? ' aria-disabled="true"' : ''}>
           ${coverHtml(b, i)}
           <h3>${esc(b.title)}</h3>
-          <p class="sub">${esc(b.subtitle)}</p>
-          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">اقرأ النبذة ←</span></div>
+          ${isSoon(b) ? '' : `<p class="sub">${esc(b.subtitle)}</p>`}
+          <div class="row">${isSoon(b)
+            ? '<span class="soon-tag">قريبًا</span>'
+            : `<span class="price">${egp(b.price)}</span><span class="hint">اقرأ النبذة ←</span>`}</div>
         </button>`)
       .join('');
     paintCovers($('#booksGrid'));
@@ -65,6 +68,7 @@
   function openBook(id) {
     const i = catalog.books.findIndex((b) => b.id === id);
     const b = catalog.books[i];
+    if (isSoon(b)) return; // nothing to show or buy yet
     const bundle = catalog.bundles.find((x) => x.bookIds.includes(id));
     $('#bookDetail').innerHTML = `
       ${coverHtml(b, i)}
@@ -98,7 +102,7 @@
   // ---------- cart ----------
   function addToCart(id) {
     const p = product(id);
-    if (!p) return;
+    if (!p || isSoon(p)) return;
     if (p.bookIds) {
       // bundle replaces the individual books it contains
       cart = cart.filter((x) => !p.bookIds.includes(x));
@@ -233,7 +237,7 @@
   $('#year').textContent = new Date().getFullYear();
   fetch('/api/catalog').then((r) => r.json()).then((c) => {
     catalog = c;
-    cart = cart.filter((id) => product(id));
+    cart = cart.filter((id) => product(id) && !isSoon(product(id)));
     renderBooks();
     renderBundle();
     renderLibrary();

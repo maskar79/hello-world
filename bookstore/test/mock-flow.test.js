@@ -22,7 +22,7 @@ test('store flow with mock gateway', async (t) => {
     r = await req('POST', '/api/quote', { items: ['book1', 'bundle-all'] });
     assert.deepEqual(r.json.lines.map((l) => l.id), ['bundle-all']);
     assert.equal(r.json.total, 1000);
-    assert.equal(r.json.bookIds.length, 4);
+    assert.equal(r.json.bookIds.length, 3);
     r = await req('POST', '/api/quote', { items: ['bundle-all'], promoCode: 'half50' });
     assert.equal(r.json.total, 500);
     r = await req('POST', '/api/quote', { items: ['bundle-all'], promoCode: 'SAVE100' });
@@ -33,6 +33,9 @@ test('store flow with mock gateway', async (t) => {
     assert.equal(r.status, 400);
     r = await req('POST', '/api/quote', { items: ['hacked'] });
     assert.equal(r.status, 400);
+    r = await req('POST', '/api/quote', { items: ['book4'] }); // "coming soon"
+    assert.equal(r.status, 400);
+    assert.match(r.json.error, /لم يصدر/);
   });
 
   await t.test('download locked until paid, then works with limits', async () => {
@@ -85,7 +88,7 @@ test('store flow with mock gateway', async (t) => {
     const o = await req('GET', `/api/orders/${link.searchParams.get('id')}?t=${link.searchParams.get('t')}`);
     assert.equal(o.json.status, 'paid');
     assert.equal(o.json.total, 0);
-    assert.equal(o.json.downloads.length, 4);
+    assert.equal(o.json.downloads.length, 3);
   });
 
   await t.test('checkout validates customer', async () => {

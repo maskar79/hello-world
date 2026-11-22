@@ -29,7 +29,7 @@
       <div class="dl upload-row">
         <div class="badge-state ${b.uploaded ? 'ok' : 'missing'}">${b.uploaded ? '✓' : '!'}</div>
         <div><h4>${esc(b.title)}</h4>
-          <small>${esc(b.file)} — ${b.uploaded ? `مرفوع (${mb(b.size)})` : 'لم يُرفع بعد'}</small>
+          <small>${esc(b.file)} — ${b.soon ? 'قريبًا (غير معروض للبيع، لا يحتاج ملفًا الآن)' : b.uploaded ? `مرفوع (${mb(b.size)})` : 'لم يُرفع بعد'}</small>
           <div class="progress" hidden><span></span></div></div>
         ${data.uploadsEnabled ? `<label class="btn small">${b.uploaded ? 'استبدال' : 'رفع PDF'}
           <input type="file" accept="application/pdf,.pdf" data-book="${esc(b.id)}" hidden></label>` : '<span></span>'}

@@ -19,7 +19,9 @@
 
     $('#downloads').innerHTML = o.downloads.map((d, i) => `
       <div class="dl">
-        <div class="cover" data-color="${esc(d.color || '#333')}"><span class="cover-num">${'١٢٣٤٥٦٧٨٩'[i] || ''}</span></div>
+        ${d.cover
+          ? `<div class="cover has-img"><img src="${esc(d.cover)}" alt=""></div>`
+          : `<div class="cover" data-color="${esc(d.color || '#333')}"><span class="cover-num">${'١٢٣٤٥٦٧٨٩'[i] || ''}</span></div>`}
         <div><h4>${esc(d.title)}</h4>
           <small>${o.status === 'paid' ? `متبقٍ ${d.remaining.toLocaleString('ar-EG')} مرات تحميل` : 'متاح بعد تأكيد الدفع'}</small></div>
         ${d.url

@@ -102,6 +102,7 @@ function publicOrder(o) {
         bookId: bid,
         title: b.title,
         color: b.color,
+        cover: b.cover || null,
         remaining: Math.max(0, MAX_DOWNLOADS - used),
         url: o.status === 'paid' && used < MAX_DOWNLOADS ? `/download/${o.id}/${bid}?t=${o.token}` : null,
       };
@@ -333,7 +334,7 @@ app.get('/api/admin/books', requireAdmin, (req, res) => {
     books: catalog().books.map((b) => {
       const f = path.join(BOOKS_DIR, path.basename(b.file));
       const st = fs.existsSync(f) ? fs.statSync(f) : null;
-      return { id: b.id, title: b.title, file: b.file, uploaded: !!st, size: st ? st.size : 0, updatedAt: st ? st.mtime : null };
+      return { id: b.id, title: b.title, file: b.file, soon: b.status === 'soon', uploaded: !!st, size: st ? st.size : 0, updatedAt: st ? st.mtime : null };
     }),
   });
 });

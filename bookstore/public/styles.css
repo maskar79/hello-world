@@ -130,6 +130,12 @@ img { max-width: 100%; display: block; }
 .cover-title { font-size: 1.45rem; line-height: 1.4; font-weight: 700; }
 .cover-line { width: 40px; height: 2px; background: #d9b36a; }
 .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Real cover images: their own 1417x2000 proportions, no generated overlay. */
+.cover.has-img { aspect-ratio: 1417 / 2000; padding: 0; background: #9FACB4; border-radius: 2px; box-shadow: 0 8px 22px rgba(0,0,0,.22); }
+.cover.has-img::after { display: none; }
+.card.soon { cursor: default; }
+.card.soon:hover { transform: none; box-shadow: none; }
+.soon-tag { display: inline-block; background: #FFD200; color: #000; font-weight: 700; padding: 0 12px; border-bottom: 2px solid #000; }
 
 /* Bundle */
 .bundle {
