@@ -18,14 +18,21 @@
     const [cls, text] = PAYMENTS[data.payments];
     $('#paymentsStatus').className = `status ${cls}`;
     $('#paymentsStatus').innerHTML = `<span class="dot"></span><span>${esc(text)}</span>`;
+    const st = $('#storageStatus');
+    st.hidden = data.storage !== 'json' || location.hostname === 'localhost';
+    st.className = 'status failed';
+    st.innerHTML = '<span class="dot"></span><span>تحذير: لا توجد قاعدة بيانات (DATABASE_URL). الطلبات محفوظة في ملف مؤقت وقد تُمسح عند إعادة تشغيل السيرفر، فيفقد المشترون روابط التحميل.</span>';
+    $('#booksHint').textContent = data.uploadsEnabled
+      ? 'ارفع ملف الـ PDF لكل كتاب. الملفات تُحفظ على السيرفر فقط ولا يستطيع أحد تحميلها إلا بعد الدفع.'
+      : 'الرفع من هنا متوقف على هذا السيرفر. لإضافة أو تغيير كتاب: ارفعه على GitHub داخل فولدر bookstore/private/books (والريبو Private)، وRender سيعيد النشر تلقائيًا. هنا تتأكد أن الملفات وصلت.';
     $('#books').innerHTML = data.books.map((b) => `
       <div class="dl upload-row">
         <div class="badge-state ${b.uploaded ? 'ok' : 'missing'}">${b.uploaded ? '✓' : '!'}</div>
         <div><h4>${esc(b.title)}</h4>
           <small>${esc(b.file)} — ${b.uploaded ? `مرفوع (${mb(b.size)})` : 'لم يُرفع بعد'}</small>
           <div class="progress" hidden><span></span></div></div>
-        <label class="btn small">${b.uploaded ? 'استبدال' : 'رفع PDF'}
-          <input type="file" accept="application/pdf,.pdf" data-book="${esc(b.id)}" hidden></label>
+        ${data.uploadsEnabled ? `<label class="btn small">${b.uploaded ? 'استبدال' : 'رفع PDF'}
+          <input type="file" accept="application/pdf,.pdf" data-book="${esc(b.id)}" hidden></label>` : '<span></span>'}
       </div>`).join('');
   }
 

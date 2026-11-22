@@ -23,13 +23,13 @@ function findProduct(id) {
 
 class PricingError extends Error {}
 
-function lookupPromo(code) {
+async function lookupPromo(code) {
   if (!code) return null;
   const normalized = String(code).trim().toUpperCase();
   const promo = readJson('promos.json').codes.find((p) => p.code.toUpperCase() === normalized);
   if (!promo || !promo.active) throw new PricingError('كود الخصم غير صحيح');
   if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) throw new PricingError('كود الخصم منتهي الصلاحية');
-  if (promo.maxUses != null && store.promoUses(promo.code) >= promo.maxUses)
+  if (promo.maxUses != null && (await store.promoUses(promo.code)) >= promo.maxUses)
     throw new PricingError('تم استنفاد عدد مرات استخدام هذا الكود');
   return promo;
 }
@@ -38,7 +38,7 @@ function lookupPromo(code) {
  * @param {string[]} itemIds product ids (books and/or bundles)
  * @param {string} [promoCode]
  */
-function priceCart(itemIds, promoCode) {
+async function priceCart(itemIds, promoCode) {
   if (!Array.isArray(itemIds) || itemIds.length === 0) throw new PricingError('السلة فارغة');
   let products = [...new Set(itemIds.map(String))].map((id) => {
     const p = findProduct(id);
@@ -54,7 +54,7 @@ function priceCart(itemIds, promoCode) {
   const subtotal = lines.reduce((s, l) => s + l.price, 0);
 
   let discount = 0;
-  const promo = lookupPromo(promoCode);
+  const promo = await lookupPromo(promoCode);
   if (promo) {
     const eligible = lines
       .filter((l) => promo.appliesTo === 'all' || (Array.isArray(promo.appliesTo) && promo.appliesTo.includes(l.id)))

@@ -15,6 +15,9 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const PROVIDER = process.env.PAYMENT_PROVIDER || (IS_PROD ? 'paymob' : 'mock');
 const BOOKS_DIR = process.env.BOOKS_DIR || path.join(__dirname, 'private', 'books');
 const MAX_DOWNLOADS = parseInt(process.env.MAX_DOWNLOADS_PER_BOOK || '10', 10);
+// On hosts without a persistent disk (e.g. Render free), uploaded files would vanish on restart,
+// so the books ship inside the (private) repo instead and admin uploads are turned off.
+const UPLOADS_ENABLED = process.env.ALLOW_BOOK_UPLOADS !== 'false';
 
 if (PROVIDER === 'mock' && IS_PROD) {
   console.error('Refusing to start: PAYMENT_PROVIDER=mock is not allowed in production.');
@@ -27,11 +30,17 @@ if (PROVIDER === 'paymob' && !PAYMOB_READY) {
   console.warn('WARNING: Paymob keys are missing — paid checkout is disabled until they are set.');
 }
 fs.mkdirSync(BOOKS_DIR, { recursive: true });
+if (IS_PROD && !process.env.DATABASE_URL && !process.env.DB_PATH) {
+  console.warn('WARNING: no DATABASE_URL — orders are stored in a local file and may be lost on restart.');
+}
 
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(express.json({ limit: '50kb' }));
+
+// Express 4 doesn't forward rejected promises to the error handler; this does.
+const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 app.use((req, res, next) => {
   res.set({
@@ -97,21 +106,22 @@ function publicOrder(o) {
   };
 }
 
-function markPaid(order, info = {}) {
-  if (order.status === 'paid') return; // idempotent: callback + redirect can both arrive
-  order.status = 'paid';
-  order.paidAt = new Date().toISOString();
-  order.payment = { ...order.payment, ...info };
-  if (order.promoCode) store.incrementPromo(order.promoCode);
-  store.saveOrder(order);
-  console.log(`[paid] ${order.id} ${order.total} EGP ${order.customer.email}`);
+// Idempotent and atomic: Paymob's callback and the browser redirect can both arrive,
+// even at the same moment; only the first one flips the order (and counts the promo use).
+async function markPaid(order, info = {}) {
+  if (order.status === 'paid') return;
+  const paid = { ...order, status: 'paid', paidAt: new Date().toISOString(), payment: { ...order.payment, ...info } };
+  if (await store.markPaid(paid)) {
+    Object.assign(order, paid);
+    console.log(`[paid] ${order.id} ${order.total} EGP`);
+  }
 }
 
-function markFailed(order, info = {}) {
+async function markFailed(order, info = {}) {
   if (order.status === 'paid') return;
   order.status = 'failed';
   order.payment = { ...order.payment, ...info };
-  store.saveOrder(order);
+  await store.saveOrder(order); // no-op if the order was paid in the meantime
 }
 
 // --- public API ---
@@ -125,20 +135,20 @@ app.get('/api/catalog', (req, res) => {
   });
 });
 
-app.post('/api/quote', rateLimit(30, 60_000), (req, res) => {
+app.post('/api/quote', rateLimit(30, 60_000), ah(async (req, res) => {
   try {
-    const q = priceCart(req.body.items, req.body.promoCode);
+    const q = await priceCart(req.body.items, req.body.promoCode);
     res.json(q);
   } catch (e) {
     if (e instanceof PricingError) return res.status(400).json({ error: e.message });
     throw e;
   }
-});
+}));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^\+?[0-9]{10,15}$/;
 
-app.post('/api/checkout', rateLimit(10, 60_000), async (req, res) => {
+app.post('/api/checkout', rateLimit(10, 60_000), ah(async (req, res) => {
   const { items, promoCode, customer = {} } = req.body;
   const name = String(customer.name || '').trim().slice(0, 100);
   const email = String(customer.email || '').trim().toLowerCase().slice(0, 150);
@@ -149,7 +159,7 @@ app.post('/api/checkout', rateLimit(10, 60_000), async (req, res) => {
 
   let quote;
   try {
-    quote = priceCart(items, promoCode);
+    quote = await priceCart(items, promoCode);
   } catch (e) {
     if (e instanceof PricingError) return res.status(400).json({ error: e.message });
     throw e;
@@ -165,11 +175,11 @@ app.post('/api/checkout', rateLimit(10, 60_000), async (req, res) => {
     downloads: {},
     payment: { provider: PROVIDER },
   };
-  store.saveOrder(order);
+  await store.saveOrder(order);
 
   // 100% discount → no payment needed.
   if (order.total === 0) {
-    markPaid(order, { provider: 'free-promo' });
+    await markPaid(order, { provider: 'free-promo' });
     return res.json({ orderId: order.id, redirect: orderLink(order), orderLink: orderLink(order) });
   }
 
@@ -178,48 +188,49 @@ app.post('/api/checkout', rateLimit(10, 60_000), async (req, res) => {
   }
 
   if (!PAYMOB_READY) {
-    markFailed(order, { error: 'payments-not-configured' });
+    await markFailed(order, { error: 'payments-not-configured' });
     return res.status(503).json({ error: 'الدفع الإلكتروني غير متاح حاليًا، حاول لاحقًا' });
   }
 
   try {
     const checkout = await paymob.createCheckout(order, BASE_URL);
     order.paymob = { intentionId: checkout.intentionId, orderId: checkout.orderId };
-    store.saveOrder(order);
+    await store.saveOrder(order);
     res.json({ orderId: order.id, redirect: checkout.url, orderLink: orderLink(order) });
   } catch (e) {
     console.error(e);
-    markFailed(order, { error: 'gateway' });
+    await markFailed(order, { error: 'gateway' });
     res.status(502).json({ error: 'تعذر الاتصال ببوابة الدفع، حاول مرة أخرى' });
   }
-});
+}));
 
-app.get('/api/orders/:id', (req, res) => {
-  const order = store.getOrder(req.params.id);
+app.get('/api/orders/:id', ah(async (req, res) => {
+  const order = await store.getOrder(req.params.id);
   if (!tokenOk(order, req.query.t)) return res.status(404).json({ error: 'الطلب غير موجود' });
   res.json(publicOrder(order));
-});
+}));
 
 // --- Paymob webhooks ---
-function findOrderForTxn(merchantOrderId, paymobOrderId) {
-  return (merchantOrderId && store.getOrder(merchantOrderId)) || (paymobOrderId && store.findOrderByPaymobOrderId(paymobOrderId)) || null;
+async function findOrderForTxn(merchantOrderId, paymobOrderId) {
+  return (merchantOrderId && (await store.getOrder(String(merchantOrderId)))) ||
+    (paymobOrderId && (await store.findOrderByPaymobOrderId(paymobOrderId))) || null;
 }
 
-function applyTxn(order, { success, pending, amountCents, txnId }) {
+async function applyTxn(order, { success, pending, amountCents, txnId }) {
   if (!order) return;
   if (success && !pending) {
     if (Number(amountCents) !== order.total * 100) {
       console.warn(`[amount mismatch] ${order.id}: got ${amountCents}, expected ${order.total * 100}`);
       return;
     }
-    markPaid(order, { transactionId: txnId });
+    await markPaid(order, { transactionId: txnId });
   } else if (!pending) {
-    markFailed(order, { transactionId: txnId });
+    await markFailed(order, { transactionId: txnId });
   }
 }
 
 // Server-to-server: the authoritative confirmation.
-app.post('/api/paymob/callback', (req, res) => {
+app.post('/api/paymob/callback', ah(async (req, res) => {
   if (!PAYMOB_READY) return res.sendStatus(503);
   const obj = req.body && req.body.obj;
   if (!obj || req.body.type !== 'TRANSACTION') return res.sendStatus(200);
@@ -227,39 +238,39 @@ app.post('/api/paymob/callback', (req, res) => {
     console.warn('[paymob] invalid HMAC on callback');
     return res.sendStatus(401);
   }
-  const order = findOrderForTxn(obj.order && obj.order.merchant_order_id, obj.order && obj.order.id);
-  applyTxn(order, { success: obj.success === true, pending: obj.pending === true, amountCents: obj.amount_cents, txnId: obj.id });
+  const order = await findOrderForTxn(obj.order && obj.order.merchant_order_id, obj.order && obj.order.id);
+  await applyTxn(order, { success: obj.success === true, pending: obj.pending === true, amountCents: obj.amount_cents, txnId: obj.id });
   res.sendStatus(200);
-});
+}));
 
 // Browser redirect after paying: verify, update, then send the buyer to their order page.
-app.get('/api/paymob/return', (req, res) => {
+app.get('/api/paymob/return', ah(async (req, res) => {
   const q = req.query;
   const valid = PAYMOB_READY && paymob.verifyRedirectQuery(q);
-  const order = findOrderForTxn(q.merchant_order_id, q.order);
+  const order = await findOrderForTxn(q.merchant_order_id, q.order);
   if (!order) return res.redirect('/?payment=unknown');
   if (valid) {
-    applyTxn(order, { success: q.success === 'true', pending: q.pending === 'true', amountCents: q.amount_cents, txnId: q.id });
+    await applyTxn(order, { success: q.success === 'true', pending: q.pending === 'true', amountCents: q.amount_cents, txnId: q.id });
   }
   res.redirect(orderLink(order));
-});
+}));
 
 // --- Mock gateway (local testing only) ---
 if (PROVIDER === 'mock') {
-  app.post('/api/mock/complete', (req, res) => {
-    const order = store.getOrder(req.body.id);
+  app.post('/api/mock/complete', ah(async (req, res) => {
+    const order = await store.getOrder(String(req.body.id || ''));
     if (!tokenOk(order, req.body.t)) return res.status(404).json({ error: 'not found' });
-    if (req.body.result === 'success') markPaid(order, { transactionId: 'mock_' + Date.now() });
-    else markFailed(order, { transactionId: 'mock_' + Date.now() });
+    if (req.body.result === 'success') await markPaid(order, { transactionId: 'mock_' + Date.now() });
+    else await markFailed(order, { transactionId: 'mock_' + Date.now() });
     res.json({ redirect: orderLink(order) });
-  });
+  }));
 } else {
   app.get('/mock-pay.html', (req, res) => res.sendStatus(404));
 }
 
 // --- Protected downloads ---
-app.get('/download/:orderId/:bookId', (req, res) => {
-  const order = store.getOrder(req.params.orderId);
+app.get('/download/:orderId/:bookId', ah(async (req, res) => {
+  const order = await store.getOrder(req.params.orderId);
   if (!tokenOk(order, req.query.t)) return res.status(404).send('Not found');
   if (order.status !== 'paid') return res.status(402).send('لم يتم تأكيد الدفع بعد');
   const bookId = req.params.bookId;
@@ -272,11 +283,11 @@ app.get('/download/:orderId/:bookId', (req, res) => {
     console.error(`[missing file] ${filePath}`);
     return res.status(500).send('الملف غير متاح حاليًا، تواصل معنا');
   }
-  order.downloads[bookId] = (order.downloads[bookId] || 0) + 1;
-  store.saveOrder(order);
+  if (!(await store.incrementDownload(order.id, bookId, MAX_DOWNLOADS)))
+    return res.status(429).send('تم تجاوز الحد الأقصى لمرات التحميل، تواصل معنا');
   res.set('Cache-Control', 'private, no-store');
   res.download(filePath, `${book.title}.pdf`);
-});
+}));
 
 // --- Admin ---
 function requireAdmin(req, res, next) {
@@ -290,6 +301,8 @@ function requireAdmin(req, res, next) {
 app.get('/api/admin/books', requireAdmin, (req, res) => {
   res.json({
     payments: PROVIDER === 'mock' ? 'mock' : PAYMOB_READY ? 'paymob' : 'not-configured',
+    uploadsEnabled: UPLOADS_ENABLED,
+    storage: store.kind,
     books: catalog().books.map((b) => {
       const f = path.join(BOOKS_DIR, path.basename(b.file));
       const st = fs.existsSync(f) ? fs.statSync(f) : null;
@@ -301,11 +314,12 @@ app.get('/api/admin/books', requireAdmin, (req, res) => {
 // Upload a book PDF straight from the admin page (raw body, streamed to disk).
 const MAX_UPLOAD = 300 * 1024 * 1024;
 app.put('/api/admin/books/:bookId', requireAdmin, (req, res) => {
+  if (!UPLOADS_ENABLED) return res.status(403).json({ error: 'الرفع من هنا متوقف على هذا السيرفر — ارفع الكتب على GitHub' });
   const book = catalog().books.find((b) => b.id === req.params.bookId);
   if (!book) return res.status(404).json({ error: 'كتاب غير معروف' });
   if (Number(req.get('content-length') || 0) > MAX_UPLOAD) return res.status(413).json({ error: 'الملف أكبر من 300MB' });
   const dest = path.join(BOOKS_DIR, path.basename(book.file));
-  const tmp = `${dest}.uploading`;
+  const tmp = `${dest}.${crypto.randomBytes(6).toString('hex')}.uploading`; // unique per upload
   const out = fs.createWriteStream(tmp);
   let size = 0;
   let head = Buffer.alloc(0);
@@ -327,23 +341,25 @@ app.put('/api/admin/books/:bookId', requireAdmin, (req, res) => {
   out.on('finish', () => {
     if (aborted) return;
     if (head.toString('latin1') !== '%PDF-') return fail(400, 'الملف ليس PDF');
-    fs.renameSync(tmp, dest);
-    console.log(`[upload] ${book.file} ${size} bytes`);
-    res.json({ ok: true, size });
+    fs.rename(tmp, dest, (err) => {
+      if (err) return fail(500, 'تعذر حفظ الملف');
+      console.log(`[upload] ${book.file} ${size} bytes`);
+      res.json({ ok: true, size });
+    });
   });
   out.on('error', () => fail(500, 'تعذر حفظ الملف'));
   req.on('error', () => fail(400, 'انقطع الرفع'));
 });
 
-app.get('/api/admin/orders', requireAdmin, (req, res) => {
+app.get('/api/admin/orders', requireAdmin, ah(async (req, res) => {
   res.json(
-    store.allOrders().map((o) => ({
+    (await store.allOrders()).map((o) => ({
       id: o.id, status: o.status, createdAt: o.createdAt, paidAt: o.paidAt, customer: o.customer,
       items: o.lines.map((l) => l.title), subtotal: o.subtotal, discount: o.discount, total: o.total,
       promoCode: o.promoCode, downloads: o.downloads, link: BASE_URL + orderLink(o),
     }))
   );
-});
+}));
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
@@ -352,8 +368,17 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'حدث خطأ غير متوقع' });
 });
 
+// Fail fast if the database is unreachable or misconfigured.
+app.ready = store.init();
+
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Bookstore running on ${BASE_URL} (payments: ${PROVIDER})`));
+  app.ready
+    .then(() => app.listen(PORT, () => console.log(`Bookstore running on ${BASE_URL} (payments: ${PROVIDER}, storage: ${store.kind})`)))
+    .catch((e) => {
+      console.error('Could not connect to the database:', e.message);
+      process.exit(1);
+    });
 }
 
 module.exports = app;
+module.exports.store = store;

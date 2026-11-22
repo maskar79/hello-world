@@ -1,32 +1,28 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
-# Deploys the bookstore in ./bookstore with a persistent disk for orders and the PDF books.
+# Free setup: Render free web service + Neon free Postgres (orders) + PDFs inside this PRIVATE repo.
 services:
   - type: web
     name: author-bookstore
     runtime: node
     rootDir: bookstore
-    plan: starter            # persistent disks need a paid instance; the free plan would lose orders and books
-    region: frankfurt        # closest Render region to Egypt
+    plan: free
+    region: frankfurt        # closest Render region to Egypt; create the Neon DB in Frankfurt too
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/catalog
-    disk:
-      name: store-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: PAYMENT_PROVIDER
         value: paymob
-      - key: DB_PATH
-        value: /var/data/db.json
-      - key: BOOKS_DIR
-        value: /var/data/books
+      - key: ALLOW_BOOK_UPLOADS   # free instances have no persistent disk; books come from the repo
+        value: "false"
       - key: MAX_DOWNLOADS_PER_BOOK
         value: "10"
+      - key: DATABASE_URL         # Neon connection string (postgresql://...?sslmode=require)
+        sync: false
       - key: ADMIN_PASSWORD
-        sync: false          # Render asks for this when you create the Blueprint
+        sync: false
       - key: PAYMOB_SECRET_KEY
         sync: false
       - key: PAYMOB_PUBLIC_KEY
