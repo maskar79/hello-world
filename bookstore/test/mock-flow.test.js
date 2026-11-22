@@ -6,7 +6,7 @@ setupEnv({ PAYMENT_PROVIDER: 'mock', MAX_DOWNLOADS_PER_BOOK: '2' });
 const app = require('../server');
 
 test('store flow with mock gateway', async (t) => {
-  const { server, req } = await start(app);
+  const { server, base, req } = await start(app);
   t.after(() => server.close());
 
   await t.test('catalog hides file names', async () => {
@@ -94,6 +94,20 @@ test('store flow with mock gateway', async (t) => {
     const r = await req('GET', '/api/admin/orders', null, { Authorization: 'Bearer secret-admin' });
     assert.equal(r.status, 200);
     assert.ok(r.json.length >= 3);
+  });
+
+  await t.test('admin can upload a book PDF, non-PDF rejected', async () => {
+    const auth = { Authorization: 'Bearer secret-admin' };
+    const pdf = '%PDF-1.4\nuploaded-test\n%%EOF\n';
+    const up = async (body, headers = auth) => (await fetch(`${base}/api/admin/books/book4`, { method: 'PUT', headers: { 'Content-Type': 'application/pdf', ...headers }, body })).status;
+    assert.equal(await up(pdf, {}), 401);
+    assert.equal(await up('hello not a pdf'), 400);
+    assert.equal(await up(pdf), 200);
+    const list = await req('GET', '/api/admin/books', null, auth);
+    const b4 = list.json.books.find((b) => b.id === 'book4');
+    assert.ok(b4.uploaded);
+    assert.equal(b4.size, pdf.length);
+    assert.equal(list.json.payments, 'mock');
   });
 
   await t.test('private books folder is not publicly served', async () => {

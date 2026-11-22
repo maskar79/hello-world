@@ -28,6 +28,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
@@ -245,3 +246,10 @@ input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 .admin table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .admin th, .admin td { padding: 8px; border-bottom: 1px solid var(--line); text-align: start; vertical-align: top; }
 .admin .table-wrap { overflow-x: auto; }
+.upload-row { grid-template-columns: 44px 1fr auto; }
+.badge-state { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; }
+.badge-state.ok { background: var(--ok); }
+.badge-state.missing { background: var(--gold); }
+.progress { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+.progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.admin h2 { margin-top: 36px; }

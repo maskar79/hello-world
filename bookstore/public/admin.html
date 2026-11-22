@@ -4,18 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>لوحة المبيعات</title>
+  <title>لوحة الإدارة</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="admin">
   <main class="section">
-    <h1>لوحة المبيعات</h1>
+    <h1>لوحة الإدارة</h1>
     <form id="login" class="promo">
-      <input id="pass" type="password" placeholder="كلمة مرور الإدارة (ADMIN_PASSWORD)">
+      <input id="pass" type="password" placeholder="كلمة مرور الإدارة (ADMIN_PASSWORD)" autocomplete="current-password">
       <button class="btn small">دخول</button>
     </form>
-    <p id="summary" class="msg"></p>
-    <div class="table-wrap"><table id="table"></table></div>
+    <p id="loginMsg" class="msg"></p>
+
+    <div id="panel" hidden>
+      <p id="paymentsStatus" class="status"></p>
+
+      <h2>ملفات الكتب</h2>
+      <p class="hint">ارفع ملف الـ PDF لكل كتاب. الملفات تُحفظ على السيرفر فقط ولا يستطيع أحد تحميلها إلا بعد الدفع.</p>
+      <div class="dl-list" id="books"></div>
+
+      <h2>المبيعات</h2>
+      <p id="summary" class="msg"></p>
+      <div class="table-wrap"><table id="table"></table></div>
+    </div>
   </main>
   <script src="/admin.js"></script>
 </body>

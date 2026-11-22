@@ -9,7 +9,8 @@ const paymob = require('./src/paymob');
 const { catalog, priceCart, PricingError } = require('./src/pricing');
 
 const PORT = process.env.PORT || 3000;
-const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+// On Render, RENDER_EXTERNAL_URL is set automatically.
+const BASE_URL = (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PROVIDER = process.env.PAYMENT_PROVIDER || (IS_PROD ? 'paymob' : 'mock');
 const BOOKS_DIR = process.env.BOOKS_DIR || path.join(__dirname, 'private', 'books');
@@ -19,10 +20,13 @@ if (PROVIDER === 'mock' && IS_PROD) {
   console.error('Refusing to start: PAYMENT_PROVIDER=mock is not allowed in production.');
   process.exit(1);
 }
-if (PROVIDER === 'paymob' && !process.env.PAYMOB_HMAC_SECRET) {
-  console.error('Refusing to start: PAYMOB_HMAC_SECRET is required to verify payments.');
-  process.exit(1);
+// The site can go live before Paymob is set up: paid checkout is simply unavailable until then.
+const PAYMOB_READY = ['PAYMOB_SECRET_KEY', 'PAYMOB_PUBLIC_KEY', 'PAYMOB_HMAC_SECRET', 'PAYMOB_INTEGRATION_IDS']
+  .every((k) => process.env[k]);
+if (PROVIDER === 'paymob' && !PAYMOB_READY) {
+  console.warn('WARNING: Paymob keys are missing — paid checkout is disabled until they are set.');
 }
+fs.mkdirSync(BOOKS_DIR, { recursive: true });
 
 const app = express();
 app.set('trust proxy', 1);
@@ -173,6 +177,11 @@ app.post('/api/checkout', rateLimit(10, 60_000), async (req, res) => {
     return res.json({ orderId: order.id, redirect: `/mock-pay.html?id=${order.id}&t=${order.token}`, orderLink: orderLink(order) });
   }
 
+  if (!PAYMOB_READY) {
+    markFailed(order, { error: 'payments-not-configured' });
+    return res.status(503).json({ error: 'الدفع الإلكتروني غير متاح حاليًا، حاول لاحقًا' });
+  }
+
   try {
     const checkout = await paymob.createCheckout(order, BASE_URL);
     order.paymob = { intentionId: checkout.intentionId, orderId: checkout.orderId };
@@ -211,6 +220,7 @@ function applyTxn(order, { success, pending, amountCents, txnId }) {
 
 // Server-to-server: the authoritative confirmation.
 app.post('/api/paymob/callback', (req, res) => {
+  if (!PAYMOB_READY) return res.sendStatus(503);
   const obj = req.body && req.body.obj;
   if (!obj || req.body.type !== 'TRANSACTION') return res.sendStatus(200);
   if (!paymob.verifyProcessedCallback(obj, req.query.hmac)) {
@@ -225,7 +235,7 @@ app.post('/api/paymob/callback', (req, res) => {
 // Browser redirect after paying: verify, update, then send the buyer to their order page.
 app.get('/api/paymob/return', (req, res) => {
   const q = req.query;
-  const valid = paymob.verifyRedirectQuery(q);
+  const valid = PAYMOB_READY && paymob.verifyRedirectQuery(q);
   const order = findOrderForTxn(q.merchant_order_id, q.order);
   if (!order) return res.redirect('/?payment=unknown');
   if (valid) {
@@ -268,12 +278,64 @@ app.get('/download/:orderId/:bookId', (req, res) => {
   res.download(filePath, `${book.title}.pdf`);
 });
 
-// --- Admin (read-only sales view) ---
-app.get('/api/admin/orders', (req, res) => {
+// --- Admin ---
+function requireAdmin(req, res, next) {
   const pass = process.env.ADMIN_PASSWORD;
   const given = (req.get('authorization') || '').replace(/^Bearer /, '');
   if (!pass || given.length !== pass.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(pass)))
     return res.status(401).json({ error: 'unauthorized' });
+  next();
+}
+
+app.get('/api/admin/books', requireAdmin, (req, res) => {
+  res.json({
+    payments: PROVIDER === 'mock' ? 'mock' : PAYMOB_READY ? 'paymob' : 'not-configured',
+    books: catalog().books.map((b) => {
+      const f = path.join(BOOKS_DIR, path.basename(b.file));
+      const st = fs.existsSync(f) ? fs.statSync(f) : null;
+      return { id: b.id, title: b.title, file: b.file, uploaded: !!st, size: st ? st.size : 0, updatedAt: st ? st.mtime : null };
+    }),
+  });
+});
+
+// Upload a book PDF straight from the admin page (raw body, streamed to disk).
+const MAX_UPLOAD = 300 * 1024 * 1024;
+app.put('/api/admin/books/:bookId', requireAdmin, (req, res) => {
+  const book = catalog().books.find((b) => b.id === req.params.bookId);
+  if (!book) return res.status(404).json({ error: 'كتاب غير معروف' });
+  if (Number(req.get('content-length') || 0) > MAX_UPLOAD) return res.status(413).json({ error: 'الملف أكبر من 300MB' });
+  const dest = path.join(BOOKS_DIR, path.basename(book.file));
+  const tmp = `${dest}.uploading`;
+  const out = fs.createWriteStream(tmp);
+  let size = 0;
+  let head = Buffer.alloc(0);
+  let aborted = false;
+  const fail = (code, error) => {
+    if (aborted) return;
+    aborted = true;
+    req.unpipe(out);
+    out.destroy();
+    fs.rm(tmp, { force: true }, () => {});
+    res.status(code).json({ error });
+  };
+  req.on('data', (chunk) => {
+    size += chunk.length;
+    if (head.length < 5) head = Buffer.concat([head, chunk]).subarray(0, 5);
+    if (size > MAX_UPLOAD) fail(413, 'الملف أكبر من 300MB');
+  });
+  req.pipe(out);
+  out.on('finish', () => {
+    if (aborted) return;
+    if (head.toString('latin1') !== '%PDF-') return fail(400, 'الملف ليس PDF');
+    fs.renameSync(tmp, dest);
+    console.log(`[upload] ${book.file} ${size} bytes`);
+    res.json({ ok: true, size });
+  });
+  out.on('error', () => fail(500, 'تعذر حفظ الملف'));
+  req.on('error', () => fail(400, 'انقطع الرفع'));
+});
+
+app.get('/api/admin/orders', requireAdmin, (req, res) => {
   res.json(
     store.allOrders().map((o) => ({
       id: o.id, status: o.status, createdAt: o.createdAt, paidAt: o.paidAt, customer: o.customer,

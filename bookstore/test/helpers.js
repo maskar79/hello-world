@@ -4,7 +4,7 @@ const path = require('path');
 
 function setupEnv(extra) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bookstore-'));
-  Object.assign(process.env, { DB_PATH: path.join(tmp, 'db.json'), NODE_ENV: 'test', ADMIN_PASSWORD: 'secret-admin' }, extra);
+  Object.assign(process.env, { DB_PATH: path.join(tmp, 'db.json'), BOOKS_DIR: path.join(tmp, 'books'), NODE_ENV: 'test', ADMIN_PASSWORD: 'secret-admin' }, extra);
   require('../scripts/make-sample-pdfs.js');
 }
 

@@ -2,12 +2,57 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const STATUS = { paid: 'مدفوع', pending: 'قيد الانتظار', failed: 'فشل' };
+  const PAYMENTS = {
+    paymob: ['paid', 'الدفع عبر Paymob مفعّل ✓'],
+    mock: ['pending', 'وضع الاختبار: بوابة دفع وهمية (PAYMENT_PROVIDER=mock)'],
+    'not-configured': ['failed', 'الدفع غير مفعّل بعد: أضف مفاتيح Paymob في إعدادات Render (Environment). الأكواد المجانية 100% تعمل.'],
+  };
+  const mb = (n) => `${(n / 1024 / 1024).toFixed(1)} MB`;
+  let pass = '';
 
-  $('#login').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const res = await fetch('/api/admin/orders', { headers: { Authorization: `Bearer ${$('#pass').value}` } });
-    if (!res.ok) { $('#summary').textContent = 'كلمة المرور غير صحيحة'; return; }
-    const orders = await res.json();
+  const api = (url, opts = {}) =>
+    fetch(url, { ...opts, headers: { Authorization: `Bearer ${pass}`, ...(opts.headers || {}) } });
+
+  async function loadBooks() {
+    const data = await (await api('/api/admin/books')).json();
+    const [cls, text] = PAYMENTS[data.payments];
+    $('#paymentsStatus').className = `status ${cls}`;
+    $('#paymentsStatus').innerHTML = `<span class="dot"></span><span>${esc(text)}</span>`;
+    $('#books').innerHTML = data.books.map((b) => `
+      <div class="dl upload-row">
+        <div class="badge-state ${b.uploaded ? 'ok' : 'missing'}">${b.uploaded ? '✓' : '!'}</div>
+        <div><h4>${esc(b.title)}</h4>
+          <small>${esc(b.file)} — ${b.uploaded ? `مرفوع (${mb(b.size)})` : 'لم يُرفع بعد'}</small>
+          <div class="progress" hidden><span></span></div></div>
+        <label class="btn small">${b.uploaded ? 'استبدال' : 'رفع PDF'}
+          <input type="file" accept="application/pdf,.pdf" data-book="${esc(b.id)}" hidden></label>
+      </div>`).join('');
+  }
+
+  // XHR (not fetch) so we can show upload progress for large PDFs.
+  function upload(bookId, file, row) {
+    const bar = row.querySelector('.progress');
+    const small = row.querySelector('small');
+    bar.hidden = false;
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', `/api/admin/books/${encodeURIComponent(bookId)}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${pass}`);
+    xhr.setRequestHeader('Content-Type', 'application/pdf');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) bar.firstElementChild.style.width = `${Math.round((e.loaded / e.total) * 100)}%`;
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) return loadBooks();
+      bar.hidden = true;
+      small.textContent = (() => { try { return JSON.parse(xhr.responseText).error; } catch { return 'فشل الرفع'; } })();
+    };
+    xhr.onerror = () => { bar.hidden = true; small.textContent = 'انقطع الاتصال أثناء الرفع'; };
+    small.textContent = `جارٍ رفع ${file.name}…`;
+    xhr.send(file);
+  }
+
+  async function loadOrders() {
+    const orders = await (await api('/api/admin/orders')).json();
     const paid = orders.filter((o) => o.status === 'paid');
     const revenue = paid.reduce((s, o) => s + o.total, 0);
     $('#summary').textContent = `الطلبات المدفوعة: ${paid.length} · الإيراد: ${revenue.toLocaleString('ar-EG')} ج.م · إجمالي الطلبات: ${orders.length}`;
@@ -21,5 +66,21 @@
         <td>${esc(o.promoCode || '—')}</td>
         <td><input readonly value="${esc(o.link)}" dir="ltr"></td>
       </tr>`).join('');
+  }
+
+  $('#login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    pass = $('#pass').value;
+    const res = await api('/api/admin/books');
+    if (!res.ok) { $('#loginMsg').textContent = 'كلمة المرور غير صحيحة'; $('#loginMsg').className = 'msg err'; return; }
+    $('#loginMsg').textContent = '';
+    $('#login').hidden = true;
+    $('#panel').hidden = false;
+    await Promise.all([loadBooks(), loadOrders()]);
+  });
+
+  $('#books').addEventListener('change', (e) => {
+    const input = e.target.closest('input[type=file][data-book]');
+    if (input?.files[0]) upload(input.dataset.book, input.files[0], input.closest('.upload-row'));
   });
 })();

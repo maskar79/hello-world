@@ -1,0 +1,37 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploys the bookstore in ./bookstore with a persistent disk for orders and the PDF books.
+services:
+  - type: web
+    name: author-bookstore
+    runtime: node
+    rootDir: bookstore
+    plan: starter            # persistent disks need a paid instance; the free plan would lose orders and books
+    region: frankfurt        # closest Render region to Egypt
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/catalog
+    disk:
+      name: store-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYMENT_PROVIDER
+        value: paymob
+      - key: DB_PATH
+        value: /var/data/db.json
+      - key: BOOKS_DIR
+        value: /var/data/books
+      - key: MAX_DOWNLOADS_PER_BOOK
+        value: "10"
+      - key: ADMIN_PASSWORD
+        sync: false          # Render asks for this when you create the Blueprint
+      - key: PAYMOB_SECRET_KEY
+        sync: false
+      - key: PAYMOB_PUBLIC_KEY
+        sync: false
+      - key: PAYMOB_HMAC_SECRET
+        sync: false
+      - key: PAYMOB_INTEGRATION_IDS
+        sync: false

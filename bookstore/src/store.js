@@ -4,6 +4,8 @@ const path = require('path');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'db.json');
 
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
 let db = { orders: {}, promoUses: {} };
 if (fs.existsSync(DB_PATH)) {
   db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
