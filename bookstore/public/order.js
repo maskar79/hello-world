@@ -35,6 +35,10 @@
     if (o.status === 'paid') {
       $('#keep').hidden = false;
       $('#linkInput').value = location.href;
+      if (o.emailTo) {
+        $('#emailNote').hidden = false;
+        $('#emailNote').innerHTML = `أرسلنا رابط التحميل أيضًا إلى بريدك <bdi dir="ltr">${esc(o.emailTo)}</bdi>. إذا لم تجده خلال دقائق، راجع مجلد الرسائل غير المرغوب فيها (Spam).`;
+      }
     }
   }
 

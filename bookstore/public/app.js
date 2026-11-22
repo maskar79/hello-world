@@ -261,6 +261,7 @@
   $('#year').textContent = new Date().getFullYear();
   fetch('/api/catalog').then((r) => r.json()).then((c) => {
     catalog = c;
+    if (c.emailEnabled) $('.field-note').textContent = 'سنرسل لك رابط التحميل على هذا البريد، فاكتبه بدقة. وهو يُطبع أيضًا على نسختك من الكتاب.';
     cart = cart.filter((id) => product(id) && !isSoon(product(id)));
     renderHero();
     renderBooks();

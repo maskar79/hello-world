@@ -50,6 +50,11 @@ function jsonStore() {
       save();
       return true;
     },
+    async setEmail(orderId, email) {
+      if (!db.orders[orderId]) return;
+      db.orders[orderId].email = email;
+      save();
+    },
     async allOrders() {
       return Object.values(db.orders).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(clone);
     },
@@ -150,6 +155,9 @@ function pgStore() {
         [orderId, bookId, max]
       );
       return r.rowCount > 0;
+    },
+    async setEmail(orderId, email) {
+      await pool.query(`UPDATE orders SET data = jsonb_set(data, '{email}', $2::jsonb) WHERE id = $1`, [orderId, JSON.stringify(email)]);
     },
     async allOrders() {
       const r = await pool.query('SELECT data FROM orders ORDER BY created_at DESC LIMIT 1000');

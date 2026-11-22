@@ -18,6 +18,11 @@
     const [cls, text] = PAYMENTS[data.payments];
     $('#paymentsStatus').className = `status ${cls}`;
     $('#paymentsStatus').innerHTML = `<span class="dot"></span><span>${esc(text)}</span>`;
+    const em = $('#emailStatus');
+    em.className = `status ${data.email === 'not-configured' ? 'pending' : 'paid'}`;
+    em.innerHTML = `<span class="dot"></span><span>${data.email === 'not-configured'
+      ? 'إيميل التأكيد غير مفعّل بعد: أضف مفتاح خدمة البريد في إعدادات Render (Environment).'
+      : `إيميل التأكيد بعد الشراء مفعّل ✓ (${esc(data.email)})`}</span>`;
     const st = $('#storageStatus');
     st.hidden = data.storage !== 'json' || location.hostname === 'localhost';
     st.className = 'status failed';
@@ -63,7 +68,8 @@
     const paid = orders.filter((o) => o.status === 'paid');
     const revenue = paid.reduce((s, o) => s + o.total, 0);
     $('#summary').textContent = `الطلبات المدفوعة: ${paid.length} · الإيراد: ${revenue.toLocaleString('ar-EG')} ج.م · إجمالي الطلبات: ${orders.length}`;
-    $('#table').innerHTML = `<tr><th>التاريخ</th><th>الحالة</th><th>العميل</th><th>المنتجات</th><th>الإجمالي</th><th>الكود</th><th>رابط الطلب</th></tr>` +
+    const MAIL = { sent: 'أُرسل', failed: 'فشل الإرسال', pending: 'جارٍ الإرسال' };
+    $('#table').innerHTML = `<tr><th>التاريخ</th><th>الحالة</th><th>العميل</th><th>المنتجات</th><th>الإجمالي</th><th>الكود</th><th>الإيميل</th><th>رابط الطلب</th></tr>` +
       orders.map((o) => `<tr>
         <td>${esc(new Date(o.createdAt).toLocaleString('ar-EG'))}</td>
         <td>${esc(STATUS[o.status] || o.status)}</td>
@@ -71,9 +77,21 @@
         <td>${o.items.map(esc).join('<br>')}</td>
         <td>${o.total}${o.discount ? ` <small>(خصم ${o.discount})</small>` : ''}</td>
         <td>${esc(o.promoCode || '—')}</td>
+        <td>${o.email ? `<span class="mail-state ${esc(o.email)}">${MAIL[o.email] || esc(o.email)}</span>` : '—'}
+          ${o.status === 'paid' && o.email ? `<br><button class="btn small" type="button" data-resend="${esc(o.id)}">إعادة الإرسال</button>` : ''}</td>
         <td><input readonly value="${esc(o.link)}" dir="ltr"></td>
       </tr>`).join('');
   }
+
+  $('#table').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-resend]');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'جارٍ الإرسال…';
+    const res = await api(`/api/admin/orders/${encodeURIComponent(btn.dataset.resend)}/resend-email`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    btn.textContent = res.ok && data.email?.status === 'sent' ? 'تم الإرسال ✓' : (data.error || 'فشل الإرسال');
+  });
 
   $('#login').addEventListener('submit', async (e) => {
     e.preventDefault();

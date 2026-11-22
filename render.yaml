@@ -21,6 +21,17 @@ services:
         value: "10"
       - key: DATABASE_URL         # Neon connection string (postgresql://...?sslmode=require)
         sync: false
+      # --- order confirmation email (see GO-LIVE.md) ---
+      - key: RESEND_API_KEY       # or set BREVO_API_KEY instead; leave empty to send no emails
+        sync: false
+      - key: MAIL_FROM_EMAIL      # e.g. books@your-domain.com (must be verified with the email service)
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: إسراءيل
+      - key: MAIL_REPLY_TO        # customers' replies go here
+        value: Goyalla@gmail.com
+      - key: CONTACT_WHATSAPP     # shown in the email
+        value: "+971 50 617 8653"
       - key: ADMIN_PASSWORD
         sync: false
       - key: PAYMOB_SECRET_KEY

@@ -8,6 +8,7 @@ const store = require('./src/store');
 const paymob = require('./src/paymob');
 const { catalog, priceCart, PricingError } = require('./src/pricing');
 const { stampPdf } = require('./src/stamp');
+const mailer = require('./src/mailer');
 
 const PORT = process.env.PORT || 3000;
 // On Render, RENDER_EXTERNAL_URL is set automatically.
@@ -83,6 +84,9 @@ function tokenOk(order, token) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+// a•••@example.com — enough for the buyer to recognise their address.
+const maskEmail = (e) => String(e).replace(/^(.)[^@]*(@.*)$/, '$1•••$2');
+
 function publicOrder(o) {
   const books = catalog().books;
   return {
@@ -95,6 +99,7 @@ function publicOrder(o) {
     discount: o.discount,
     total: o.total,
     promoCode: o.promoCode,
+    emailTo: mailer.enabled() ? maskEmail(o.customer.email) : null,
     downloads: o.bookIds.map((bid) => {
       const b = books.find((x) => x.id === bid) || { title: bid };
       const used = o.downloads[bid] || 0;
@@ -119,9 +124,33 @@ async function markPaid(order, info = {}, opts = {}) {
   if (result === 'paid') {
     Object.assign(order, paid);
     console.log(`[paid] ${order.id} ${order.total} EGP${order.promoCode ? ` (code ${order.promoCode})` : ''}`);
+    emailOrder(order); // in the background: the buyer's page never waits for the email
   }
   return result;
 }
+
+// Sends the confirmation email with the personal download link and records the outcome on the order.
+const emailJobs = new Set();
+function emailOrder(order) {
+  if (!mailer.enabled()) {
+    if (!IS_PROD) console.log(`[email] not configured, skipped for ${order.id}`);
+    return Promise.resolve();
+  }
+  const job = (async () => {
+    try {
+      const id = await mailer.sendOrderEmail(order, { baseUrl: BASE_URL, catalog: catalog() });
+      await store.setEmail(order.id, { status: 'sent', at: new Date().toISOString(), id });
+      console.log(`[email] sent ${order.id}`);
+    } catch (e) {
+      console.error(`[email] failed ${order.id}: ${e.message}`);
+      await store.setEmail(order.id, { status: 'failed', at: new Date().toISOString(), error: e.message.slice(0, 300) }).catch(() => {});
+    }
+  })();
+  emailJobs.add(job);
+  job.finally(() => emailJobs.delete(job));
+  return job;
+}
+app.emailJobs = emailJobs;
 
 async function markFailed(order, info = {}) {
   if (order.status === 'paid') return;
@@ -136,6 +165,7 @@ app.get('/api/catalog', (req, res) => {
   res.json({
     currency: c.currency,
     provider: PROVIDER,
+    emailEnabled: mailer.enabled(),
     books: c.books.map(({ file, ...b }) => b), // never expose file names
     bundles: c.bundles,
   });
@@ -335,6 +365,7 @@ function requireAdmin(req, res, next) {
 app.get('/api/admin/books', requireAdmin, (req, res) => {
   res.json({
     payments: PROVIDER === 'mock' ? 'mock' : PAYMOB_READY ? 'paymob' : 'not-configured',
+    email: mailer.enabled() ? mailer.settings().provider : 'not-configured',
     uploadsEnabled: UPLOADS_ENABLED,
     storage: store.kind,
     books: catalog().books.map((b) => {
@@ -385,12 +416,24 @@ app.put('/api/admin/books/:bookId', requireAdmin, (req, res) => {
   req.on('error', () => fail(400, 'انقطع الرفع'));
 });
 
+// Send the confirmation email again (e.g. the buyer couldn't find it).
+app.post('/api/admin/orders/:id/resend-email', requireAdmin, ah(async (req, res) => {
+  const order = await store.getOrder(req.params.id);
+  if (!order) return res.status(404).json({ error: 'الطلب غير موجود' });
+  if (order.status !== 'paid') return res.status(400).json({ error: 'الطلب غير مدفوع' });
+  if (!mailer.enabled()) return res.status(503).json({ error: 'خدمة البريد غير مفعّلة' });
+  await emailOrder(order);
+  const fresh = await store.getOrder(order.id);
+  res.json({ email: fresh.email });
+}));
+
 app.get('/api/admin/orders', requireAdmin, ah(async (req, res) => {
   res.json(
     (await store.allOrders()).map((o) => ({
       id: o.id, status: o.status, createdAt: o.createdAt, paidAt: o.paidAt, customer: o.customer,
       items: o.lines.map((l) => l.title), subtotal: o.subtotal, discount: o.discount, total: o.total,
       promoCode: o.promoCode, downloads: o.downloads, link: BASE_URL + orderLink(o),
+      email: o.email ? o.email.status : (o.status === 'paid' && mailer.enabled() ? 'pending' : null),
     }))
   );
 }));
