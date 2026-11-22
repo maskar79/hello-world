@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>بوابة دفع تجريبية</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="mock-banner">وضع الاختبار — هذه ليست بوابة دفع حقيقية (PAYMENT_PROVIDER=mock)</div>
+  <main class="order-wrap">
+    <h1>بوابة دفع تجريبية</h1>
+    <p>اختر نتيجة الدفع لمحاكاة ما سترسله Paymob:</p>
+    <div class="hero-actions">
+      <button class="btn primary" data-result="success">دفع ناجح</button>
+      <button class="btn ghost" data-result="failed">دفع فاشل</button>
+    </div>
+  </main>
+  <script src="/mock-pay.js"></script>
+</body>
+</html>

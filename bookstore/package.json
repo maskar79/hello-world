@@ -1,0 +1,23 @@
+{
+  "name": "author-bookstore",
+  "version": "1.0.0",
+  "description": "Arabic e-book store with Paymob payments, bundles and promo codes",
+  "main": "server.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "sample-pdfs": "node scripts/make-sample-pdfs.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^4.22.3"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

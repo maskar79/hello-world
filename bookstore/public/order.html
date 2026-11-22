@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>طلبك</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar"><a href="/" class="brand">مكتبة الكاتب</a></header>
+  <main class="order-wrap">
+    <h1>طلبك</h1>
+    <div class="status pending" id="status"><span class="dot"></span><div id="statusText">جارٍ التحقق من حالة الدفع…</div></div>
+
+    <h2>كتبك</h2>
+    <div class="dl-list" id="downloads"></div>
+
+    <dl class="totals" id="totals"></dl>
+
+    <div id="keep" hidden>
+      <p class="hint"><strong>احتفظ بهذا الرابط</strong> — يمكنك العودة إليه لاحقًا لتحميل كتبك مرة أخرى:</p>
+      <div class="copy-row"><input id="linkInput" readonly><button class="btn small" id="copyBtn">نسخ</button></div>
+    </div>
+  </main>
+  <script src="/order.js"></script>
+</body>
+</html>

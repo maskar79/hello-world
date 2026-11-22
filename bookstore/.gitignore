@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/db.json
+data/db.json.tmp
+# The real books must NEVER be committed (the repo may be public).
+private/books/*
+!private/books/README.md
