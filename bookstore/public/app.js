@@ -44,6 +44,9 @@
   }
 
   // Part label on the right, page count in small grey on the far left of the same line.
+  const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+  const dlCount = (b) => (b.downloadCount ? `<p class="dlc">${DL_ICON}${b.downloadCount.toLocaleString('ar-EG')} تحميل</p>` : '');
+  const partUrl = (b) => `/part-${catalog.books.indexOf(b) + 1}`;
   const cardTop = (b) => `<div class="card-top"><span class="chip">${partLabel(b)}</span>${b.pages ? `<span class="pages">${b.pages.toLocaleString('ar-EG')} صفحة</span>` : ''}</div>`;
 
   function renderBooks() {
@@ -53,7 +56,7 @@
           <div class="row"><span class="soon-tag">قريبًا</span></div></div>`
       : `<button class="card" data-book="${esc(b.id)}" type="button">${coverHtml(b)}
           ${cardTop(b)}
-          <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
+          <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>${dlCount(b)}
           <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">تفاصيل الكتاب ←</span></div></button>`).join('');
   }
 
@@ -94,6 +97,7 @@
           <button class="btn primary" type="button" data-add="${esc(b.id)}">${cart.includes(b.id) ? 'في السلة ✓' : 'أضف للسلة'}</button>
           ${bundle ? `<button class="btn" type="button" data-add="${esc(bundle.id)}">أو ${esc(bundleName(bundle))} بـ ${egp(bundle.price)}</button>` : ''}
         </div>
+        <a class="sample-link" href="${partUrl(b)}">تصفّح عينة من الكتاب وصفحته الكاملة ←</a>
         <p class="hint">زر التحميل يتفعّل مباشرةً بعد تأكيد الدفع.</p>
       </div>`;
     $('#bookDialog').showModal();
@@ -271,6 +275,11 @@
     renderBundle();
     renderLibrary();
     saveCart();
+    // Links from a part's page: /?add=book1 puts it in the cart, /?cart=1 opens the cart.
+    const q = new URLSearchParams(location.search);
+    if (q.get('add')) addToCart(q.get('add'));
+    else if (q.get('cart')) openDrawer();
+    if (q.get('add') || q.get('cart')) history.replaceState(null, '', '/');
     if (new URLSearchParams(location.search).get('payment') === 'unknown') {
       const el = $('#myLibrary');
       el.hidden = false;

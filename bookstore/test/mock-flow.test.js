@@ -122,6 +122,21 @@ test('store flow with mock gateway', async (t) => {
     assert.equal(list.json.payments, 'mock');
   });
 
+  await t.test('part pages, download counter and sample pages', async () => {
+    assert.equal((await req('GET', '/part-1')).status, 200);
+    assert.match((await req('GET', '/part-3')).text, /book\.js/);
+    assert.equal((await req('GET', '/part-4')).status, 404); // "coming soon": no page yet
+    assert.equal((await req('GET', '/part-9')).status, 404);
+    const c = (await req('GET', '/api/catalog')).json;
+    const b1 = c.books.find((b) => b.id === 'book1');
+    assert.ok(b1.downloadCount >= 592);
+    assert.ok(!('downloadsBase' in b1));
+    assert.equal(b1.samples.length, 6);
+    assert.equal((await req('GET', b1.samples[0])).status, 200);
+    // real downloads are counted per part (book2 was downloaded twice above)
+    assert.equal((await app.store.downloadTotals()).book2, 2);
+  });
+
   await t.test('private books folder is not publicly served', async () => {
     assert.equal((await req('GET', '/private/books/book1.pdf')).status, 404);
     assert.equal((await req('GET', '/book1.pdf')).status, 404);

@@ -160,15 +160,31 @@ async function markFailed(order, info = {}) {
 }
 
 // --- public API ---
-app.get('/api/catalog', (req, res) => {
+// Shown on each card: a starting number from the catalog plus real downloads (refreshed every minute).
+let totalsCache = { at: 0, data: {} };
+async function downloadTotals() {
+  if (Date.now() - totalsCache.at > 60_000) totalsCache = { at: Date.now(), data: await store.downloadTotals() };
+  return totalsCache.data;
+}
+
+app.get('/api/catalog', ah(async (req, res) => {
   const c = catalog();
+  const totals = await downloadTotals();
   res.json({
     currency: c.currency,
     provider: PROVIDER,
     emailEnabled: mailer.enabled(),
-    books: c.books.map(({ file, ...b }) => b), // never expose file names
+    // never expose file names
+    books: c.books.map(({ file, downloadsBase, ...b }) => ({ ...b, downloadCount: (downloadsBase || 0) + (totals[b.id] || 0) })),
     bundles: c.bundles,
   });
+}));
+
+// One page per part: /part-1, /part-2 … (parts marked "soon" have no page yet).
+app.get('/part-:n', (req, res, next) => {
+  const book = catalog().books[Number(req.params.n) - 1];
+  if (!book || book.status === 'soon' || !/^\d+$/.test(req.params.n)) return next();
+  res.sendFile(path.join(__dirname, 'public', 'book.html'));
 });
 
 app.post('/api/quote', rateLimit(30, 60_000), ah(async (req, res) => {

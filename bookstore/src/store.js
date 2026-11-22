@@ -50,6 +50,11 @@ function jsonStore() {
       save();
       return true;
     },
+    async downloadTotals() {
+      const t = {};
+      for (const o of Object.values(db.orders)) for (const [bid, n] of Object.entries(o.downloads || {})) t[bid] = (t[bid] || 0) + n;
+      return t;
+    },
     async setEmail(orderId, email) {
       if (!db.orders[orderId]) return;
       db.orders[orderId].email = email;
@@ -155,6 +160,12 @@ function pgStore() {
         [orderId, bookId, max]
       );
       return r.rowCount > 0;
+    },
+    async downloadTotals() {
+      const r = await pool.query(
+        `SELECT d.key AS book, SUM(d.value::int) AS n FROM orders, jsonb_each_text(data->'downloads') AS d GROUP BY d.key`
+      );
+      return Object.fromEntries(r.rows.map((x) => [x.book, Number(x.n)]));
     },
     async setEmail(orderId, email) {
       await pool.query(`UPDATE orders SET data = jsonb_set(data, '{email}', $2::jsonb) WHERE id = $1`, [orderId, JSON.stringify(email)]);
