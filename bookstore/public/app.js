@@ -43,15 +43,18 @@
     }
   }
 
+  // Part label on the right, page count in small grey on the far left of the same line.
+  const cardTop = (b) => `<div class="card-top"><span class="chip">${partLabel(b)}</span>${b.pages ? `<span class="pages">${b.pages.toLocaleString('ar-EG')} صفحة</span>` : ''}</div>`;
+
   function renderBooks() {
     $('#booksGrid').innerHTML = catalog.books.map((b) => isSoon(b)
-      ? `<div class="card soon">${coverHtml(b)}<span><span class="chip">${partLabel(b)}</span></span>
+      ? `<div class="card soon">${coverHtml(b)}${cardTop(b)}
           <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
           <div class="row"><span class="soon-tag">قريبًا</span></div></div>`
       : `<button class="card" data-book="${esc(b.id)}" type="button">${coverHtml(b)}
-          <span><span class="chip">${partLabel(b)}</span></span>
+          ${cardTop(b)}
           <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
-          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">اقرأ النبذة ←</span></div></button>`).join('');
+          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">تفاصيل الكتاب ←</span></div></button>`).join('');
   }
 
   function renderBundle() {
@@ -82,7 +85,7 @@
         <span class="chip">${partLabel(b)}</span>
         <h2>${esc(b.title)}</h2>
         <p class="subtitle">${esc(b.subtitle)}</p>
-        <p class="meta">${b.pages ? `${b.pagesApprox ? 'نحو ' : ''}${b.pages.toLocaleString('ar-EG')} صفحة · ` : ''}نسخة PDF</p>
+        <p class="meta">${b.pages ? `${b.pages.toLocaleString('ar-EG')} صفحة · ` : ''}نسخة PDF</p>
         <p>${rich(b.teaser)}</p>
         ${b.quote ? `<div class="callout">«${esc(b.quote)}»</div>` : ''}
         ${b.highlights?.length ? `<strong class="h">ماذا ستجد في الكتاب؟</strong><ul>${b.highlights.map((h) => `<li>${rich(h)}</li>`).join('')}</ul>` : ''}

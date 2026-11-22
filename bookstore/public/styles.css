@@ -77,6 +77,8 @@ img { max-width: 100%; display: block; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
   cursor: pointer; text-align: start; color: inherit; font: inherit; transition: transform .2s, box-shadow .2s; min-width: 0; }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.card-top .pages { color: var(--muted); font: 400 .85rem/1.6 var(--heavy); }
 .card h3 { margin: 0; font: 700 1rem/1.5 var(--heavy); color: var(--ink); }
 .card .sub { margin: 0; font: 400 .92rem/1.6 var(--read); color: var(--muted); }
 .card .row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; gap: 6px; flex-wrap: wrap; }
