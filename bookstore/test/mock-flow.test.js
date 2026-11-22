@@ -18,7 +18,7 @@ test('store flow with mock gateway', async (t) => {
 
   await t.test('pricing: single, bundle dedupe, promos', async () => {
     let r = await req('POST', '/api/quote', { items: ['book1', 'book2'] });
-    assert.equal(r.json.total, 700);
+    assert.equal(r.json.total, 800); // part 1 is 450, part 2 is 350
     r = await req('POST', '/api/quote', { items: ['book1', 'bundle-all'] });
     assert.deepEqual(r.json.lines.map((l) => l.id), ['bundle-all']);
     assert.equal(r.json.total, 1000);

@@ -29,7 +29,7 @@ test('promo code rules', async (t) => {
       const r = await req('POST', '/api/checkout', { items: ['book1'], promoCode: 'HALF50', customer });
       assert.equal(r.status, 200);
     }
-    assert.equal((await quote('HALF50')).json.total, 175);
+    assert.equal((await quote('HALF50')).json.total, 225); // half of 450
   });
 
   await t.test('start date, end date and switched-off codes', async () => {

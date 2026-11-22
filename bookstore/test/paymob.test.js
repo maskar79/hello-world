@@ -91,9 +91,9 @@ test('paymob integration', async (t) => {
 
   await t.test('browser redirect verifies HMAC and forwards to order page', async () => {
     const { id, tok } = await newOrder(['book1']);
-    const obj = txn({ id, amount: 35000 });
+    const obj = txn({ id, amount: 45000 });
     const q = {
-      amount_cents: '35000', created_at: obj.created_at, currency: 'EGP', error_occured: 'false',
+      amount_cents: '45000', created_at: obj.created_at, currency: 'EGP', error_occured: 'false',
       has_parent_transaction: 'false', id: '555', integration_id: '111', is_3d_secure: 'true', is_auth: 'false',
       is_capture: 'false', is_refunded: 'false', is_standalone_payment: 'true', is_voided: 'false', order: '9001',
       owner: '42', pending: 'false', 'source_data.pan': '2346', 'source_data.sub_type': 'MasterCard',
