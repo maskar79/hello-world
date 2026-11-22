@@ -16,7 +16,7 @@ const BASE_URL = (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || `ht
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PROVIDER = process.env.PAYMENT_PROVIDER || (IS_PROD ? 'paymob' : 'mock');
 const BOOKS_DIR = process.env.BOOKS_DIR || path.join(__dirname, 'private', 'books');
-const MAX_DOWNLOADS = parseInt(process.env.MAX_DOWNLOADS_PER_BOOK || '10', 10);
+const MAX_DOWNLOADS = parseInt(process.env.MAX_DOWNLOADS_PER_BOOK || '3', 10);
 // On hosts without a persistent disk (e.g. Render free), uploaded files would vanish on restart,
 // so the books ship inside the (private) repo instead and admin uploads are turned off.
 const UPLOADS_ENABLED = process.env.ALLOW_BOOK_UPLOADS !== 'false';

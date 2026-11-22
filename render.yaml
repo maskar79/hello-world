@@ -18,7 +18,7 @@ services:
       - key: ALLOW_BOOK_UPLOADS   # free instances have no persistent disk; books come from the repo
         value: "false"
       - key: MAX_DOWNLOADS_PER_BOOK
-        value: "10"
+        value: "3"
       - key: DATABASE_URL         # Neon connection string (postgresql://...?sslmode=require)
         sync: false
       # --- order confirmation email (see GO-LIVE.md) ---

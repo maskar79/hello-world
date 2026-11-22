@@ -13,7 +13,7 @@ function settings() {
     fromName: process.env.MAIL_FROM_NAME || 'إسراءيل',
     replyTo: process.env.MAIL_REPLY_TO || '',
     whatsapp: process.env.CONTACT_WHATSAPP || '',
-    maxDownloads: parseInt(process.env.MAX_DOWNLOADS_PER_BOOK || '10', 10),
+    maxDownloads: parseInt(process.env.MAX_DOWNLOADS_PER_BOOK || '3', 10),
   };
 }
 

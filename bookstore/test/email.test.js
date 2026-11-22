@@ -54,6 +54,8 @@ test('order confirmation email', async (t) => {
     assert.ok(m.body.html.includes('wa.me/971500000000'));
     const o = await req('GET', `/api/orders/${id}?t=${tok}`);
     assert.equal(o.json.emailTo, 'b•••@example.com');
+    assert.ok(o.json.downloads.every((d) => d.remaining === 3)); // default limit: 3 downloads per part
+    assert.ok(m.body.html.includes('حتى ٣ مرات'));
     const admin = await req('GET', '/api/admin/orders', null, auth);
     assert.equal(admin.json.find((x) => x.id === id).email, 'sent');
   });
