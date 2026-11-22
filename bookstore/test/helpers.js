@@ -22,9 +22,10 @@ async function start(app) {
       headers: { 'Content-Type': 'application/json', ...headers },
       body: body ? JSON.stringify(body) : undefined,
     });
-    const text = await res.text();
+    const buf = Buffer.from(await res.arrayBuffer());
+    const text = buf.toString('utf8');
     let json; try { json = JSON.parse(text); } catch { json = null; }
-    return { status: res.status, json, text, headers: res.headers };
+    return { status: res.status, json, text, buf, headers: res.headers };
   };
   return { server, base, req };
 }

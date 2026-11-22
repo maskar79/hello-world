@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const { PDFDocument } = require('pdf-lib');
 const { setupEnv, start, customer } = require('./helpers');
 
 setupEnv({ PAYMENT_PROVIDER: 'mock', MAX_DOWNLOADS_PER_BOOK: '2' });
@@ -58,6 +59,9 @@ test('store flow with mock gateway', async (t) => {
     assert.equal(d.status, 200);
     assert.ok(d.text.startsWith('%PDF'));
     assert.match(d.headers.get('content-disposition'), /attachment/);
+    // The copy is personalized with the buyer's email and order number.
+    const pdf = await PDFDocument.load(d.buf);
+    assert.match(pdf.getSubject(), new RegExp(`${customer.email}.*${id}`));
     assert.equal((await req('GET', `/download/${id}/book1?t=${tok}`)).status, 403); // not purchased
     assert.equal((await req('GET', `/download/${id}/book2?t=wrong`)).status, 404);
     await req('GET', o.json.downloads[0].url);

@@ -7,6 +7,7 @@ const express = require('express');
 const store = require('./src/store');
 const paymob = require('./src/paymob');
 const { catalog, priceCart, PricingError } = require('./src/pricing');
+const { stampPdf } = require('./src/stamp');
 
 const PORT = process.env.PORT || 3000;
 // On Render, RENDER_EXTERNAL_URL is set automatically.
@@ -18,6 +19,8 @@ const MAX_DOWNLOADS = parseInt(process.env.MAX_DOWNLOADS_PER_BOOK || '10', 10);
 // On hosts without a persistent disk (e.g. Render free), uploaded files would vanish on restart,
 // so the books ship inside the (private) repo instead and admin uploads are turned off.
 const UPLOADS_ENABLED = process.env.ALLOW_BOOK_UPLOADS !== 'false';
+// Stamp every downloaded copy with the buyer's details (set STAMP_PDFS=false to turn off).
+const STAMP_PDFS = process.env.STAMP_PDFS !== 'false';
 
 if (PROVIDER === 'mock' && IS_PROD) {
   console.error('Refusing to start: PAYMENT_PROVIDER=mock is not allowed in production.');
@@ -283,10 +286,28 @@ app.get('/download/:orderId/:bookId', ah(async (req, res) => {
     console.error(`[missing file] ${filePath}`);
     return res.status(500).send('الملف غير متاح حاليًا، تواصل معنا');
   }
+
+  // Personalize this copy with the buyer's name, email and order number on every page.
+  const original = await fs.promises.readFile(filePath);
+  let body = original;
+  if (STAMP_PDFS) {
+    try {
+      body = Buffer.from(await stampPdf(original, {
+        name: order.customer.name, email: order.customer.email, orderId: order.id,
+        date: new Date(order.paidAt || order.createdAt),
+      }));
+    } catch (e) {
+      // The buyer has paid, so they still get the book; fix the source PDF (e.g. remove its password).
+      console.error(`[stamp failed] ${book.file}: ${e.message} — sent unstamped copy for ${order.id}`);
+    }
+  }
+
   if (!(await store.incrementDownload(order.id, bookId, MAX_DOWNLOADS)))
     return res.status(429).send('تم تجاوز الحد الأقصى لمرات التحميل، تواصل معنا');
   res.set('Cache-Control', 'private, no-store');
-  res.download(filePath, `${book.title}.pdf`);
+  res.attachment(`${book.title}.pdf`);
+  res.type('application/pdf');
+  res.send(body);
 }));
 
 // --- Admin ---
