@@ -39,7 +39,7 @@
         <button class="card${isSoon(b) ? ' soon' : ''}" data-book="${esc(b.id)}" type="button"${isSoon(b) ? ' aria-disabled="true"' : ''}>
           ${coverHtml(b, i)}
           <h3>${esc(b.title)}</h3>
-          ${isSoon(b) ? '' : `<p class="sub">${esc(b.subtitle)}</p>`}
+          <p class="sub">${esc(b.subtitle)}</p>
           <div class="row">${isSoon(b)
             ? '<span class="soon-tag">قريبًا</span>'
             : `<span class="price">${egp(b.price)}</span><span class="hint">اقرأ النبذة ←</span>`}</div>
