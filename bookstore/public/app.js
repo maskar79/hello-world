@@ -18,6 +18,12 @@
   const AVAILABLE = { 1: 'جزء واحد متاح الآن', 2: 'جزءان متاحان الآن', 3: 'ثلاثة أجزاء متاحة الآن', 4: 'أربعة أجزاء متاحة الآن', 5: 'خمسة أجزاء متاحة الآن' };
   const TOGETHER = { 2: 'الجزءان معًا', 3: 'الأجزاء الثلاثة معًا', 4: 'الأجزاء الأربعة معًا', 5: 'الأجزاء الخمسة معًا', 6: 'الأجزاء الستة معًا' };
   const isSoon = (b) => b && b.status === 'soon';
+  // "≈ $9" under an EGP price, from the server's daily exchange rate (hidden if unavailable).
+  const usdAmount = (egpValue) => {
+    const v = egpValue / catalog.usd.egpPerUsd;
+    return v < 10 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v));
+  };
+  const usdTag = (egpValue) => (catalog?.usd && egpValue > 0 ? `<small class="usd"><bdi dir="ltr">≈ $${usdAmount(egpValue)}</bdi></small>` : '');
   const partLabel = (b) => PARTS[catalog.books.indexOf(b)] || '';
   const coverHtml = (b, lazy = true) =>
     `<div class="cover"><img src="${esc(b.cover || '')}" alt="غلاف ${esc(b.title)}"${lazy ? ' loading="lazy"' : ''}></div>`;
@@ -58,7 +64,7 @@
       : `<button class="card" data-book="${esc(b.id)}" type="button">${coverHtml(b)}
           ${cardTop(b)}
           <h3>${esc(b.title)}</h3><p class="sub">${esc(b.subtitle)}</p>
-          <div class="row"><span class="price">${egp(b.price)}</span><span class="hint">تفاصيل الكتاب ←</span></div></button>`}${isSoon(b) ? '' : dlCount(b)}</div>`).join('');
+          <div class="row"><span class="price">${egp(b.price)}${usdTag(b.price)}</span><span class="hint">تفاصيل الكتاب ←</span></div></button>`}${isSoon(b) ? '' : dlCount(b)}</div>`).join('');
   }
 
   function renderBundle() {
@@ -74,7 +80,7 @@
         <p>${esc(bundle.subtitle)}، ملفات PDF تُحمَّل فور الدفع. ${esc(soon)}</p>
       </div>
       <div>
-        <div class="big">${egp(bundle.price)} ${save > 0 ? `<span class="strike">${egp(full)}</span>` : ''}</div>
+        <div class="big">${egp(bundle.price)} ${save > 0 ? `<span class="strike">${egp(full)}</span>` : ''}${usdTag(bundle.price)}</div>
         <button class="btn dark" type="button" data-add="${esc(bundle.id)}">أضف المجموعة للسلة</button>
       </div>`;
   }
@@ -94,7 +100,7 @@
         ${b.quote ? `<div class="callout">«${esc(b.quote)}»</div>` : ''}
         ${b.highlights?.length ? `<strong class="h">ماذا ستجد في الكتاب؟</strong><ul>${b.highlights.map((h) => `<li>${rich(h)}</li>`).join('')}</ul>` : ''}
         <div class="buy">
-          <span class="price">${egp(b.price)}</span>
+          <span class="price">${egp(b.price)}${usdTag(b.price)}</span>
           <button class="btn primary" type="button" data-add="${esc(b.id)}">${cart.includes(b.id) ? 'في السلة ✓' : 'أضف للسلة'}</button>
           ${bundle ? `<button class="btn" type="button" data-add="${esc(bundle.id)}">أو ${esc(bundleName(bundle))} بـ ${egp(bundle.price)}</button>` : ''}
         </div>
@@ -144,6 +150,7 @@
   async function refreshQuote() {
     const lines = $('#cartLines');
     if (!cart.length) {
+      $('#usdNote').hidden = true;
       quote = null;
       lines.innerHTML = '<p class="empty">السلة فارغة</p>';
       $('#totals').innerHTML = '';
@@ -174,7 +181,13 @@
     $('#totals').innerHTML = `
       <dt>المجموع</dt><dd>${egp(data.subtotal)}</dd>
       ${data.discount ? `<dt class="disc">خصم (${esc(data.promoCode)})</dt><dd class="disc">− ${egp(data.discount)}</dd>` : ''}
-      <dt class="grand">الإجمالي</dt><dd class="grand">${data.total === 0 ? 'مجانًا' : egp(data.total)}</dd>`;
+      <dt class="grand">الإجمالي</dt><dd class="grand">${data.total === 0 ? 'مجانًا' : egp(data.total)}${usdTag(data.total)}</dd>`;
+    const note = $('#usdNote');
+    note.hidden = !(catalog.usd && data.total > 0);
+    if (!note.hidden) {
+      const a = catalog.usd.attribution;
+      note.innerHTML = `السعر بالدولار تقريبي حسب سعر الصرف اليوم. الدفع يتم بالجنيه المصري، وبنكك يحوّله لعملتك تلقائيًا.${a ? ` <a href="${esc(a.href)}" target="_blank" rel="noopener">${esc(a.text)}</a>` : ''}`;
+    }
     $('#payBtn').disabled = false;
     $('#payBtn').textContent = data.total === 0 ? 'احصل على الكتب مجانًا' : `ادفع ${egp(data.total)}`;
   }

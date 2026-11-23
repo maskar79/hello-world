@@ -12,6 +12,9 @@
 
   const n = Number((location.pathname.match(/part-(\d+)/) || [])[1]);
   let samples = [];
+  let usd = null;
+  const usdAmount = (v) => (v < 10 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v)));
+  const usdTag = (egpValue) => (usd && egpValue > 0 ? `<small class="usd"><bdi dir="ltr">≈ $${usdAmount(egpValue / usd.egpPerUsd)}</bdi></small>` : '');
   let current = 0;
 
   function render(c) {
@@ -19,6 +22,7 @@
     if (!b || b.status === 'soon') { location.replace('/'); return; }
     const bundle = c.bundles.find((x) => x.bookIds.includes(b.id));
     samples = b.samples || [];
+    usd = c.usd;
     document.title = `${b.title} · ${b.subtitle}`;
 
     $('#book').innerHTML = `
@@ -33,12 +37,13 @@
             <span>نسخة PDF</span>
             ${b.downloadCount ? `<span class="dlc">${DL_ICON}${ar(b.downloadCount)} تحميل</span>` : ''}
           </p>
-          <div class="book-price">${egp(b.price)}</div>
+          <div class="book-price">${egp(b.price)}${usdTag(b.price)}</div>
           <div class="hero-actions">
             <a class="btn primary" href="/?add=${encodeURIComponent(b.id)}">أضف للسلة</a>
             ${bundle ? `<a class="btn on-dark" href="/?add=${encodeURIComponent(bundle.id)}">أو ${TOGETHER[bundle.bookIds.length] || esc(bundle.title)} بـ ${egp(bundle.price)}</a>` : ''}
           </div>
           <p class="pdf-note">نسخة إلكترونية PDF، وليست نسخة ورقية مطبوعة · يتفعّل التحميل فور الدفع</p>
+          <p class="secure-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>دفع آمن ومشفّر عبر Paymob · الدفع بالجنيه المصري${usd ? '، والسعر بالدولار تقريبي' : ''}</p>
         </div>
       </div></section>
 

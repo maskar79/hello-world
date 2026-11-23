@@ -9,6 +9,7 @@ const paymob = require('./src/paymob');
 const { catalog, priceCart, PricingError } = require('./src/pricing');
 const { stampPdf } = require('./src/stamp');
 const mailer = require('./src/mailer');
+const rates = require('./src/rates');
 
 const PORT = process.env.PORT || 3000;
 // On Render, RENDER_EXTERNAL_URL is set automatically.
@@ -169,8 +170,10 @@ async function downloadTotals() {
 
 app.get('/api/catalog', ah(async (req, res) => {
   const c = catalog();
-  const totals = await downloadTotals();
+  const [totals, usd] = await Promise.all([downloadTotals(), rates.usdRate()]);
   res.json({
+    // Approximate dollar price shown under the EGP price; payment itself is always in EGP.
+    usd: usd ? { egpPerUsd: usd.egpPerUsd, updatedAt: usd.at, attribution: usd.attribution } : null,
     currency: c.currency,
     provider: PROVIDER,
     emailEnabled: mailer.enabled(),
